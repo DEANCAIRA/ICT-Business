@@ -315,7 +315,7 @@ class JCulturePersonaGenerator:
                 best_details = details
         
         # Only assign persona if score is above threshold
-        if best_score >= 40:  # 40% match threshold
+        if best_score >= 20:  # 20% match threshold
             return best_persona, best_score, best_details, scores
         else:
             return "Unclassified", best_score, best_details, scores
