@@ -11,8 +11,8 @@ import re
 
 # Set page config
 st.set_page_config(
-    page_title="Customer Persona Generator",
-    page_icon="👤",
+    page_title="J-Culture Customer Persona Generator",
+    page_icon="🎌",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -37,12 +37,20 @@ st.markdown("""
         margin: 5px 0;
         font-size: 16px;
     }
-    .metric-card {
-        background: #f0f2f6;
+    .target-section {
+        background: #f8f9fa;
         padding: 15px;
         border-radius: 10px;
-        margin: 5px;
-        text-align: center;
+        margin: 10px 0;
+        border-left: 4px solid #28a745;
+    }
+    .criteria-met {
+        color: #28a745;
+        font-weight: bold;
+    }
+    .criteria-not-met {
+        color: #dc3545;
+        font-weight: bold;
     }
     .stTabs [data-baseweb="tab-list"] {
         gap: 2px;
@@ -55,10 +63,69 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-class CustomerPersonaGenerator:
+class JCulturePersonaGenerator:
     def __init__(self):
         self.df = None
         self.personas = []
+        self.persona_definitions = {
+            "Trend-Savvy Fashionista": {
+                "emoji": "💅",
+                "criteria": {
+                    "required": ["j_fashion", "j_beauty", "follows_influencers", "fashion_frequency_high"],
+                    "preferred": ["modern_style", "street_style", "kawaii_style", "streams_culture"]
+                },
+                "targets": ["Cosmetics", "Fashion drops", "Influencer collabs", "Limited edition makeup", "Trendy accessories"],
+                "description_template": "A trendsetting fashion enthusiast who stays ahead of Japanese fashion and beauty trends"
+            },
+            "Otaku Collector": {
+                "emoji": "🎌",
+                "criteria": {
+                    "required": ["anime_collector", "buys_merch_frequently", "streams_often"],
+                    "preferred": ["crunchyroll", "netflix", "youtube", "daily_streaming"]
+                },
+                "targets": ["Anime figures", "Special edition items", "Collector's goods", "Limited anime merchandise", "Exclusive releases"],
+                "description_template": "A dedicated anime fan who actively collects merchandise and streams content regularly"
+            },
+            "Casual J-Culture Enjoyer": {
+                "emoji": "🍣",
+                "criteria": {
+                    "required": ["some_japanese_interest"],
+                    "excluded": ["follows_influencers", "buys_merch_frequently", "fashion_frequency_high"],
+                    "preferred": ["japanese_snacks", "casual_streaming", "rare_fashion"]
+                },
+                "targets": ["Snack boxes", "Simple lifestyle kits", "Light fandom bundles", "Cultural exploration kits"],
+                "description_template": "Someone with casual interest in Japanese culture who enjoys exploring without deep commitment"
+            },
+            "Beauty-Focused Minimalist": {
+                "emoji": "🧴",
+                "criteria": {
+                    "required": ["j_beauty", "daily_routine"],
+                    "excluded": ["anime_collector", "buys_merch_frequently", "fashion_frequency_high"],
+                    "preferred": ["skincare_focused", "minimalist_approach"]
+                },
+                "targets": ["Skincare kits", "Minimalist beauty routines", "J-beauty essentials", "Quality skincare products"],
+                "description_template": "A beauty enthusiast focused on Japanese skincare with a minimalist, quality-over-quantity approach"
+            },
+            "Pop Culture Power User": {
+                "emoji": "📱",
+                "criteria": {
+                    "required": ["streams_a_lot", "follows_influencers", "buys_merch_frequently", "fashion_frequent"],
+                    "preferred": ["tiktok", "youtube", "styling_focused"]
+                },
+                "targets": ["Hype campaigns", "Limited drops", "Social media-driven promotions", "Viral products", "Influencer exclusives"],
+                "description_template": "A highly engaged pop culture enthusiast who drives trends through social media and frequent purchases"
+            },
+            "Snack & Lifestyle Explorer": {
+                "emoji": "🍱",
+                "criteria": {
+                    "required": ["japanese_snacks", "daily_routine_explorer"],
+                    "excluded": ["fashion_frequency_high", "anime_collector"],
+                    "preferred": ["trend_exploration", "lifestyle_focused"]
+                },
+                "targets": ["Subscription boxes", "Limited-edition snack collabs", "Bento kits", "Lifestyle exploration sets"],
+                "description_template": "A lifestyle enthusiast who loves exploring Japanese snacks and daily routine trends"
+            }
+        }
     
     def load_data(self, uploaded_file):
         """Load and process uploaded customer data"""
@@ -86,99 +153,200 @@ class CustomerPersonaGenerator:
             st.error(f"Error loading data: {str(e)}")
             return False
     
-    def analyze_customer_interests(self, row):
-        """Analyze customer interests and behaviors"""
-        interests = []
-        behaviors = []
-        preferences = {}
+    def extract_customer_attributes(self, row):
+        """Extract and normalize customer attributes for persona matching"""
+        attributes = set()
         
-        # Extract interests and behaviors from all columns
-        for col, value in row.items():
-            if pd.isna(value):
-                continue
-                
-            col_lower = col.lower()
-            value_str = str(value).strip()
-            
-            # Interest detection
-            if 'interest' in col_lower or 'like' in col_lower:
-                if value_str.lower() in ['yes', 'true', '1'] or value_str.lower() not in ['no', 'false', '0', 'nan']:
-                    interests.append(col.replace('Interested in ', '').replace('_', ' '))
-            
-            # Behavior patterns
-            if 'frequency' in col_lower:
-                preferences['frequency'] = value_str
-            elif 'platform' in col_lower:
-                preferences['platform'] = value_str
-            elif 'style' in col_lower:
-                preferences['style'] = value_str
-            elif 'routine' in col_lower:
-                preferences['routine'] = value_str
-            elif 'merch' in col_lower:
-                preferences['buys_merch'] = value_str
-            elif 'follow' in col_lower:
-                preferences['follows_influencers'] = value_str
+        # Convert all values to lowercase strings for comparison
+        row_str = {k: str(v).lower().strip() for k, v in row.items() if pd.notna(v)}
         
-        return interests, behaviors, preferences
+        # J-Fashion interest
+        if any('j-fashion' in str(k).lower() or 'japanese fashion' in str(k).lower() for k in row.keys()):
+            for k, v in row_str.items():
+                if ('j-fashion' in k or 'japanese fashion' in k) and v in ['yes', 'true', '1']:
+                    attributes.add('j_fashion')
+        
+        # J-Beauty interest
+        if any('j-beauty' in str(k).lower() or 'japanese beauty' in str(k).lower() for k in row.keys()):
+            for k, v in row_str.items():
+                if ('j-beauty' in k or 'japanese beauty' in k) and v in ['yes', 'true', '1']:
+                    attributes.add('j_beauty')
+        
+        # Style preferences
+        for k, v in row_str.items():
+            if 'style' in k:
+                if 'modern' in v or 'street' in v or 'streetwear' in v:
+                    attributes.add('modern_style')
+                    attributes.add('street_style')
+                if 'kawaii' in v or 'cute' in v:
+                    attributes.add('kawaii_style')
+        
+        # Fashion frequency
+        for k, v in row_str.items():
+            if 'fashion frequency' in k:
+                if v in ['daily', 'weekly', 'high', 'frequent']:
+                    attributes.add('fashion_frequency_high')
+                elif v in ['rarely', 'never', 'low']:
+                    attributes.add('rare_fashion')
+        
+        # Follows influencers
+        for k, v in row_str.items():
+            if 'follow' in k and 'influencer' in k:
+                if v in ['yes', 'true', '1']:
+                    attributes.add('follows_influencers')
+        
+        # Anime collector
+        for k, v in row_str.items():
+            if 'anime' in k and 'collector' in k:
+                if v in ['yes', 'true', '1']:
+                    attributes.add('anime_collector')
+        
+        # Buys merch
+        for k, v in row_str.items():
+            if 'buys merch' in k or 'buy merch' in k:
+                if v in ['yes', 'frequently', 'often', 'true', '1']:
+                    attributes.add('buys_merch_frequently')
+        
+        # Streaming frequency
+        for k, v in row_str.items():
+            if 'streaming frequency' in k:
+                if v in ['daily', 'weekly']:
+                    attributes.add('streams_often')
+                    attributes.add('daily_streaming')
+                elif v in ['monthly', 'sometimes']:
+                    attributes.add('casual_streaming')
+                if v in ['daily', 'weekly', 'frequently']:
+                    attributes.add('streams_a_lot')
+        
+        # Favorite platforms
+        for k, v in row_str.items():
+            if 'platform' in k:
+                if 'crunchyroll' in v:
+                    attributes.add('crunchyroll')
+                elif 'netflix' in v:
+                    attributes.add('netflix')
+                elif 'youtube' in v:
+                    attributes.add('youtube')
+                elif 'tiktok' in v:
+                    attributes.add('tiktok')
+        
+        # Japanese snacks
+        for k, v in row_str.items():
+            if 'japanese snacks' in k or 'snacks' in k:
+                if v in ['yes', 'true', '1']:
+                    attributes.add('japanese_snacks')
+        
+        # Daily routine
+        for k, v in row_str.items():
+            if 'daily routine' in k:
+                if v in ['yes', 'defined', 'structured']:
+                    attributes.add('daily_routine')
+                if 'explore' in v or 'new' in v:
+                    attributes.add('daily_routine_explorer')
+        
+        # General Japanese interest
+        japanese_keywords = ['japanese', 'j-', 'anime', 'manga', 'kawaii']
+        if any(keyword in str(row).lower() for keyword in japanese_keywords):
+            attributes.add('some_japanese_interest')
+        
+        # Fashion frequency indicators
+        for k, v in row_str.items():
+            if 'fashion' in k and 'frequency' in k:
+                if v in ['frequent', 'often', 'regularly']:
+                    attributes.add('fashion_frequent')
+        
+        return attributes
     
-    def generate_persona_description(self, customer_data, interests, preferences):
-        """Generate a narrative persona description"""
-        name = f"Customer {customer_data.get('customer_id', 'Unknown')[:8]}"
-        city = customer_data.get('customer_city', 'Unknown City')
+    def calculate_persona_score(self, attributes, persona_name):
+        """Calculate how well a customer matches a persona"""
+        persona_def = self.persona_definitions[persona_name]
+        score = 0
+        max_score = 0
+        details = {"met": [], "not_met": [], "excluded_present": []}
+        
+        # Check required criteria
+        for req in persona_def["criteria"]["required"]:
+            max_score += 10
+            if req in attributes:
+                score += 10
+                details["met"].append(req)
+            else:
+                details["not_met"].append(req)
+        
+        # Check preferred criteria
+        if "preferred" in persona_def["criteria"]:
+            for pref in persona_def["criteria"]["preferred"]:
+                max_score += 5
+                if pref in attributes:
+                    score += 5
+                    details["met"].append(pref)
+        
+        # Check excluded criteria (negative scoring)
+        if "excluded" in persona_def["criteria"]:
+            for excl in persona_def["criteria"]["excluded"]:
+                if excl in attributes:
+                    score -= 15
+                    details["excluded_present"].append(excl)
+        
+        # Calculate percentage score
+        if max_score > 0:
+            percentage = max(0, (score / max_score) * 100)
+        else:
+            percentage = 0
+        
+        return percentage, details
+    
+    def assign_persona(self, customer_data):
+        """Assign the best matching persona to a customer"""
+        attributes = self.extract_customer_attributes(customer_data)
+        
+        best_persona = None
+        best_score = 0
+        best_details = None
+        scores = {}
+        
+        for persona_name in self.persona_definitions.keys():
+            score, details = self.calculate_persona_score(attributes, persona_name)
+            scores[persona_name] = score
+            
+            if score > best_score:
+                best_score = score
+                best_persona = persona_name
+                best_details = details
+        
+        # Only assign persona if score is above threshold
+        if best_score >= 40:  # 40% match threshold
+            return best_persona, best_score, best_details, scores
+        else:
+            return "Unclassified", best_score, best_details, scores
+    
+    def generate_persona_description(self, customer_data, persona_name, score, details):
+        """Generate a detailed persona description"""
+        if persona_name == "Unclassified":
+            return "This customer doesn't strongly match any of our defined J-culture personas. They may need a custom approach or represent a new persona type."
+        
+        persona_def = self.persona_definitions[persona_name]
         
         # Base description
-        description = f"Meet {name}, a customer from {city}. "
+        description = f"{persona_def['description_template']}. "
         
-        # Add interests
-        if interests:
-            if len(interests) == 1:
-                description += f"They are passionate about {interests[0]}. "
-            else:
-                description += f"They have diverse interests including {', '.join(interests[:-1])} and {interests[-1]}. "
+        # Add customer specifics
+        city = customer_data.get('customer_city', 'Unknown City')
+        description += f"Based in {city}, "
         
-        # Add behavioral patterns
-        if preferences.get('frequency'):
-            description += f"They engage with content {preferences['frequency'].lower()}. "
+        # Add matching criteria
+        if details["met"]:
+            description += f"they demonstrate {len(details['met'])} key characteristics of this persona type. "
         
-        if preferences.get('platform'):
-            description += f"Their preferred platform is {preferences['platform']}. "
-        
-        if preferences.get('style'):
-            description += f"Their style preference leans towards {preferences['style']}. "
-        
-        if preferences.get('follows_influencers') == 'Yes':
-            description += "They actively follow fashion influencers. "
-        
-        if preferences.get('buys_merch') == 'Yes':
-            description += "They frequently purchase merchandise. "
+        # Add confidence
+        if score >= 80:
+            description += "This is a high-confidence match with strong alignment to persona characteristics."
+        elif score >= 60:
+            description += "This is a good match with solid alignment to persona characteristics."
+        else:
+            description += "This is a moderate match - consider this persona with some customization."
         
         return description
-    
-    def categorize_persona(self, interests, preferences):
-        """Categorize persona into predefined types"""
-        categories = {
-            'Fashion Enthusiast': ['fashion', 'style', 'streetwear', 'clothing'],
-            'Beauty Lover': ['beauty', 'j-beauty', 'skincare', 'makeup'],
-            'Entertainment Fan': ['anime', 'streaming', 'netflix', 'entertainment'],
-            'Lifestyle Enthusiast': ['snacks', 'japanese', 'culture', 'lifestyle'],
-            'Trendsetter': ['influencers', 'social media', 'trends'],
-            'Collector': ['collector', 'merch', 'merchandise', 'items']
-        }
-        
-        scores = {}
-        interest_str = ' '.join(interests).lower()
-        pref_str = ' '.join([str(v) for v in preferences.values()]).lower()
-        combined_text = interest_str + ' ' + pref_str
-        
-        for category, keywords in categories.items():
-            score = sum(1 for keyword in keywords if keyword in combined_text)
-            if score > 0:
-                scores[category] = score
-        
-        if scores:
-            return max(scores.items(), key=lambda x: x[1])[0]
-        else:
-            return 'General Consumer'
     
     def generate_personas(self):
         """Generate personas for all customers"""
@@ -188,7 +356,7 @@ class CustomerPersonaGenerator:
         self.personas = []
         
         for idx, row in self.df.iterrows():
-            interests, behaviors, preferences = self.analyze_customer_interests(row)
+            persona_name, score, details, all_scores = self.assign_persona(row)
             
             persona = {
                 'customer_id': row.get('customer_id', f'customer_{idx}'),
@@ -197,10 +365,13 @@ class CustomerPersonaGenerator:
                     'city': row.get('customer_city', 'Unknown'),
                     'zip_code': row.get('customer_zip_code_prefix', 'Unknown')
                 },
-                'interests': interests,
-                'preferences': preferences,
-                'category': self.categorize_persona(interests, preferences),
-                'description': self.generate_persona_description(row, interests, preferences),
+                'persona_type': persona_name,
+                'persona_emoji': self.persona_definitions.get(persona_name, {}).get('emoji', '❓'),
+                'confidence_score': round(score, 1),
+                'matching_details': details,
+                'all_scores': {k: round(v, 1) for k, v in all_scores.items()},
+                'target_products': self.persona_definitions.get(persona_name, {}).get('targets', []),
+                'description': self.generate_persona_description(row, persona_name, score, details),
                 'raw_data': row.to_dict()
             }
             
@@ -213,253 +384,284 @@ class CustomerPersonaGenerator:
         if not self.personas:
             return {}
         
-        categories = [persona['category'] for persona in self.personas]
-        cities = [persona['location']['city'] for persona in self.personas]
+        persona_counts = Counter([p['persona_type'] for p in self.personas])
+        cities = Counter([p['location']['city'] for p in self.personas])
+        
+        # Calculate average confidence by persona type
+        confidence_by_persona = {}
+        for persona_type in persona_counts.keys():
+            scores = [p['confidence_score'] for p in self.personas if p['persona_type'] == persona_type]
+            confidence_by_persona[persona_type] = round(sum(scores) / len(scores), 1) if scores else 0
         
         stats = {
             'total_personas': len(self.personas),
-            'categories': dict(Counter(categories)),
-            'cities': dict(Counter(cities)),
-            'top_interests': self.get_top_interests()
+            'persona_distribution': dict(persona_counts),
+            'cities': dict(cities),
+            'confidence_by_persona': confidence_by_persona,
+            'high_confidence_count': len([p for p in self.personas if p['confidence_score'] >= 80]),
+            'medium_confidence_count': len([p for p in self.personas if 60 <= p['confidence_score'] < 80]),
+            'low_confidence_count': len([p for p in self.personas if p['confidence_score'] < 60])
         }
         
         return stats
-    
-    def get_top_interests(self):
-        """Get most common interests across all personas"""
-        all_interests = []
-        for persona in self.personas:
-            all_interests.extend(persona['interests'])
-        
-        return dict(Counter(all_interests).most_common(10))
 
 def main():
-    st.title("🎯 Customer Persona Generator")
-    st.markdown("Upload your customer data and generate detailed personas automatically!")
+    st.title("🎌 J-Culture Customer Persona Generator")
+    st.markdown("Generate targeted personas for Japanese culture enthusiasts and plan your marketing strategy!")
     
     # Initialize the generator
     if 'generator' not in st.session_state:
-        st.session_state.generator = CustomerPersonaGenerator()
+        st.session_state.generator = JCulturePersonaGenerator()
     
-    # Sidebar for file upload
+    # Sidebar for file upload and persona guide
     with st.sidebar:
         st.header("📤 Upload Data")
         uploaded_file = st.file_uploader(
             "Choose a CSV or Excel file",
             type=['csv', 'xlsx', 'xls'],
-            help="Upload your customer data file with columns like customer_id, customer_city, interests, etc."
+            help="Upload your customer data with J-culture related columns"
         )
         
         if uploaded_file is not None:
-            if st.button("🔄 Process Data"):
-                with st.spinner("Loading and processing data..."):
+            if st.button("🔄 Generate Personas"):
+                with st.spinner("Processing customer data..."):
                     if st.session_state.generator.load_data(uploaded_file):
-                        with st.spinner("Generating personas..."):
+                        with st.spinner("Matching customers to personas..."):
                             if st.session_state.generator.generate_personas():
                                 st.success("✅ Personas generated successfully!")
                                 st.rerun()
         
         st.markdown("---")
-        st.markdown("### 📋 Data Format Example")
-        st.code("""
-customer_id,customer_city,Interested in Fashion,
-Style Preference,Streaming Frequency
-abc123,New York,Yes,Streetwear,Weekly
-def456,Los Angeles,No,Casual,Monthly
-        """)
+        st.header("🎯 Our 6 Personas")
+        
+        for persona_name, persona_def in st.session_state.generator.persona_definitions.items():
+            with st.expander(f"{persona_def['emoji']} {persona_name}"):
+                st.write(f"**Focus**: {persona_def['description_template']}")
+                st.write(f"**Targets**: {', '.join(persona_def['targets'][:3])}...")
     
     # Main content area
     if st.session_state.generator.df is not None:
         # Tabs for different views
-        tab1, tab2, tab3, tab4 = st.tabs(["📊 Overview", "👥 Personas", "📈 Analytics", "📋 Raw Data"])
+        tab1, tab2, tab3, tab4 = st.tabs(["📊 Overview", "👥 Personas", "🎯 Marketing Strategy", "📋 Raw Data"])
         
         with tab1:
-            st.header("📊 Data Overview")
+            st.header("📊 Persona Distribution Overview")
             
-            # Statistics
             stats = st.session_state.generator.get_persona_statistics()
             
             if stats:
+                # Key metrics
                 col1, col2, col3, col4 = st.columns(4)
                 
                 with col1:
                     st.metric("Total Customers", stats['total_personas'])
                 
                 with col2:
-                    st.metric("Unique Categories", len(stats['categories']))
+                    st.metric("High Confidence", stats['high_confidence_count'])
                 
                 with col3:
-                    st.metric("Cities Covered", len(stats['cities']))
+                    st.metric("Active Personas", len([k for k, v in stats['persona_distribution'].items() if v > 0]))
                 
                 with col4:
-                    st.metric("Total Interests", len(stats['top_interests']))
+                    avg_confidence = sum(stats['confidence_by_persona'].values()) / len(stats['confidence_by_persona'])
+                    st.metric("Avg Confidence", f"{avg_confidence:.1f}%")
                 
-                # Charts
+                # Visualization
                 col1, col2 = st.columns(2)
                 
                 with col1:
-                    st.subheader("Customer Categories")
-                    if stats['categories']:
-                        fig_cat = px.pie(
-                            values=list(stats['categories'].values()),
-                            names=list(stats['categories'].keys()),
-                            title="Distribution of Customer Categories"
-                        )
-                        st.plotly_chart(fig_cat, use_container_width=True)
+                    st.subheader("Persona Distribution")
+                    if stats['persona_distribution']:
+                        # Create pie chart with emojis
+                        labels = []
+                        values = []
+                        for persona, count in stats['persona_distribution'].items():
+                            emoji = st.session_state.generator.persona_definitions.get(persona, {}).get('emoji', '❓')
+                            labels.append(f"{emoji} {persona}")
+                            values.append(count)
+                        
+                        fig = px.pie(values=values, names=labels, title="Customer Persona Breakdown")
+                        st.plotly_chart(fig, use_container_width=True)
                 
                 with col2:
-                    st.subheader("Top Interests")
-                    if stats['top_interests']:
-                        fig_int = px.bar(
-                            x=list(stats['top_interests'].keys())[:8],
-                            y=list(stats['top_interests'].values())[:8],
-                            title="Most Common Customer Interests"
-                        )
-                        st.plotly_chart(fig_int, use_container_width=True)
+                    st.subheader("Confidence Levels")
+                    confidence_data = {
+                        'Level': ['High (80%+)', 'Medium (60-80%)', 'Low (<60%)'],
+                        'Count': [stats['high_confidence_count'], stats['medium_confidence_count'], stats['low_confidence_count']]
+                    }
+                    fig = px.bar(confidence_data, x='Level', y='Count', title="Persona Matching Confidence")
+                    st.plotly_chart(fig, use_container_width=True)
         
         with tab2:
             st.header("👥 Customer Personas")
             
             if st.session_state.generator.personas:
-                # Search and filter
-                search_term = st.text_input("🔍 Search personas", placeholder="Search by city, interest, or category...")
+                # Filters
+                col1, col2 = st.columns(2)
                 
-                category_filter = st.multiselect(
-                    "Filter by category",
-                    options=list(set(p['category'] for p in st.session_state.generator.personas)),
-                    default=[]
-                )
+                with col1:
+                    persona_filter = st.multiselect(
+                        "Filter by persona type",
+                        options=list(st.session_state.generator.persona_definitions.keys()) + ["Unclassified"],
+                        default=[]
+                    )
+                
+                with col2:
+                    confidence_filter = st.select_slider(
+                        "Minimum confidence level",
+                        options=[0, 40, 60, 80],
+                        value=0,
+                        format_func=lambda x: f"{x}%+"
+                    )
                 
                 # Filter personas
                 filtered_personas = st.session_state.generator.personas
                 
-                if search_term:
-                    filtered_personas = [
-                        p for p in filtered_personas 
-                        if search_term.lower() in str(p).lower()
-                    ]
+                if persona_filter:
+                    filtered_personas = [p for p in filtered_personas if p['persona_type'] in persona_filter]
                 
-                if category_filter:
-                    filtered_personas = [
-                        p for p in filtered_personas 
-                        if p['category'] in category_filter
-                    ]
+                if confidence_filter > 0:
+                    filtered_personas = [p for p in filtered_personas if p['confidence_score'] >= confidence_filter]
                 
                 st.write(f"Showing {len(filtered_personas)} of {len(st.session_state.generator.personas)} personas")
                 
                 # Display personas
-                for i, persona in enumerate(filtered_personas):
-                    with st.expander(f"👤 {persona['category']} - {persona['location']['city']} ({persona['customer_id'][:8]}...)"):
+                for persona in filtered_personas:
+                    with st.expander(f"{persona['persona_emoji']} {persona['persona_type']} - {persona['location']['city']} ({persona['confidence_score']}% match)"):
                         col1, col2 = st.columns([2, 1])
                         
                         with col1:
                             st.markdown(f"**📝 Description:**")
                             st.write(persona['description'])
                             
-                            if persona['interests']:
-                                st.markdown(f"**🎯 Interests:** {', '.join(persona['interests'])}")
+                            # Show matching criteria
+                            if persona['matching_details']['met']:
+                                st.markdown("**✅ Matching Criteria:**")
+                                for criteria in persona['matching_details']['met']:
+                                    st.write(f"• {criteria.replace('_', ' ').title()}")
                             
-                            if persona['preferences']:
-                                st.markdown("**⚙️ Preferences:**")
-                                for key, value in persona['preferences'].items():
-                                    if value and str(value).lower() not in ['nan', 'none']:
-                                        st.write(f"• {key.replace('_', ' ').title()}: {value}")
+                            if persona['matching_details']['not_met']:
+                                st.markdown("**❌ Missing Criteria:**")
+                                for criteria in persona['matching_details']['not_met']:
+                                    st.write(f"• {criteria.replace('_', ' ').title()}")
                         
                         with col2:
                             st.markdown(f"**📍 Location:** {persona['location']['city']}")
-                            st.markdown(f"**📮 Zip Code:** {persona['location']['zip_code']}")
-                            st.markdown(f"**🏷️ Category:** {persona['category']}")
+                            st.markdown(f"**🎯 Confidence:** {persona['confidence_score']}%")
                             
-                            # Export individual persona
-                            persona_json = json.dumps(persona, indent=2)
-                            st.download_button(
-                                "📥 Download Persona",
-                                persona_json,
-                                f"persona_{persona['customer_id'][:8]}.json",
-                                "application/json",
-                                key=f"download_{i}"
-                            )
+                            # Target products
+                            if persona['target_products']:
+                                st.markdown("**🛍️ Target Products:**")
+                                for product in persona['target_products']:
+                                    st.write(f"• {product}")
+                            
+                            # All scores
+                            with st.expander("See all persona scores"):
+                                for p_name, score in persona['all_scores'].items():
+                                    st.write(f"{p_name}: {score}%")
         
         with tab3:
-            st.header("📈 Analytics Dashboard")
+            st.header("🎯 Marketing Strategy Recommendations")
             
-            stats = st.session_state.generator.get_persona_statistics()
-            
-            if stats:
-                # Geographic distribution
-                st.subheader("🗺️ Geographic Distribution")
-                if stats['cities']:
-                    city_df = pd.DataFrame(list(stats['cities'].items()), columns=['City', 'Count'])
-                    fig_geo = px.bar(city_df, x='Count', y='City', orientation='h', 
-                                   title="Customer Distribution by City")
-                    st.plotly_chart(fig_geo, use_container_width=True)
+            if st.session_state.generator.personas:
+                stats = st.session_state.generator.get_persona_statistics()
                 
-                # Detailed category breakdown
-                st.subheader("📊 Category Analysis")
-                col1, col2 = st.columns(2)
-                
-                with col1:
-                    if stats['categories']:
-                        cat_df = pd.DataFrame(list(stats['categories'].items()), columns=['Category', 'Count'])
-                        fig_cat_bar = px.bar(cat_df, x='Category', y='Count', 
-                                           title="Customer Count by Category")
-                        fig_cat_bar.update_xaxis(tickangle=45)
-                        st.plotly_chart(fig_cat_bar, use_container_width=True)
-                
-                with col2:
-                    if stats['top_interests']:
-                        int_df = pd.DataFrame(list(stats['top_interests'].items()), columns=['Interest', 'Count'])
-                        fig_int_pie = px.pie(int_df, values='Count', names='Interest', 
-                                           title="Interest Distribution")
-                        st.plotly_chart(fig_int_pie, use_container_width=True)
+                # Strategy recommendations for each persona
+                for persona_name, persona_def in st.session_state.generator.persona_definitions.items():
+                    count = stats['persona_distribution'].get(persona_name, 0)
+                    if count > 0:
+                        avg_confidence = stats['confidence_by_persona'].get(persona_name, 0)
+                        
+                        st.markdown(f"### {persona_def['emoji']} {persona_name} ({count} customers)")
+                        
+                        col1, col2 = st.columns([2, 1])
+                        
+                        with col1:
+                            st.markdown("**🎯 Recommended Products:**")
+                            for product in persona_def['targets']:
+                                st.write(f"• {product}")
+                            
+                            # Marketing channel recommendations
+                            st.markdown("**📢 Marketing Channels:**")
+                            if persona_name == "Trend-Savvy Fashionista":
+                                st.write("• Instagram fashion posts & stories")
+                                st.write("• TikTok fashion challenges")
+                                st.write("• Influencer partnerships")
+                            elif persona_name == "Otaku Collector":
+                                st.write("• Anime convention partnerships")
+                                st.write("• Collector community forums")
+                                st.write("• Limited edition launches")
+                            elif persona_name == "Pop Culture Power User":
+                                st.write("• Social media campaigns")
+                                st.write("• Viral marketing tactics")
+                                st.write("• Platform-specific content")
+                            else:
+                                st.write("• Email newsletters")
+                                st.write("• Content marketing")
+                                st.write("• Targeted social ads")
+                        
+                        with col2:
+                            st.metric("Customer Count", count)
+                            st.metric("Avg Confidence", f"{avg_confidence}%")
+                            
+                            # Priority level
+                            if count >= 5 and avg_confidence >= 70:
+                                st.success("🔥 High Priority Segment")
+                            elif count >= 3 and avg_confidence >= 60:
+                                st.info("📈 Medium Priority Segment")
+                            else:
+                                st.warning("💡 Low Priority Segment")
+                        
+                        st.markdown("---")
         
         with tab4:
-            st.header("📋 Raw Data")
+            st.header("📋 Data Export & Analysis")
             
-            st.subheader("Original Data")
+            # Raw data view
+            st.subheader("Original Customer Data")
             st.dataframe(st.session_state.generator.df, use_container_width=True)
             
-            st.subheader("Export Options")
+            # Export options
+            st.subheader("📥 Export Options")
             col1, col2, col3 = st.columns(3)
             
             with col1:
-                # Export all personas as JSON
                 if st.session_state.generator.personas:
-                    all_personas_json = json.dumps(st.session_state.generator.personas, indent=2)
+                    # Export detailed personas
+                    personas_json = json.dumps(st.session_state.generator.personas, indent=2)
                     st.download_button(
-                        "📥 Download All Personas (JSON)",
-                        all_personas_json,
-                        "all_personas.json",
+                        "📥 Download Detailed Personas (JSON)",
+                        personas_json,
+                        "j_culture_personas.json",
                         "application/json"
                     )
             
             with col2:
-                # Export personas as CSV
                 if st.session_state.generator.personas:
-                    personas_for_csv = []
+                    # Export marketing summary
+                    marketing_data = []
                     for persona in st.session_state.generator.personas:
-                        row = {
+                        marketing_data.append({
                             'customer_id': persona['customer_id'],
+                            'persona_type': persona['persona_type'],
+                            'confidence': persona['confidence_score'],
                             'city': persona['location']['city'],
-                            'zip_code': persona['location']['zip_code'],
-                            'category': persona['category'],
-                            'interests': ', '.join(persona['interests']),
-                            'description': persona['description']
-                        }
-                        personas_for_csv.append(row)
+                            'target_products': ', '.join(persona['target_products'][:3])
+                        })
                     
-                    personas_df = pd.DataFrame(personas_for_csv)
-                    csv = personas_df.to_csv(index=False)
+                    marketing_df = pd.DataFrame(marketing_data)
+                    csv = marketing_df.to_csv(index=False)
                     st.download_button(
-                        "📥 Download Personas (CSV)",
+                        "📥 Download Marketing Summary (CSV)",
                         csv,
-                        "personas.csv",
+                        "marketing_summary.csv",
                         "text/csv"
                     )
             
             with col3:
-                # Export statistics
                 if st.session_state.generator.personas:
+                    # Export statistics
+                    stats = st.session_state.generator.get_persona_statistics()
                     stats_json = json.dumps(stats, indent=2)
                     st.download_button(
                         "📥 Download Statistics (JSON)",
@@ -471,31 +673,33 @@ def456,Los Angeles,No,Casual,Monthly
     else:
         # Welcome screen
         st.markdown("""
-        ## 🚀 Welcome to Customer Persona Generator!
+        ## 🎌 Welcome to J-Culture Persona Generator!
         
-        This tool helps you create detailed customer personas from your data. Here's what it can do:
+        Transform your customer data into actionable J-culture personas for targeted marketing.
         
-        ### ✨ Features:
-        - **📤 Easy Upload**: Support for CSV and Excel files
-        - **🤖 Automatic Analysis**: Intelligently extracts interests and behaviors
-        - **🎯 Smart Categorization**: Groups customers into meaningful personas
-        - **📊 Visual Analytics**: Interactive charts and statistics
-        - **📥 Export Options**: Download personas in multiple formats
+        ### 🎯 Our 6 Specialized Personas:
         
-        ### 📋 Getting Started:
-        1. Upload your customer data file using the sidebar
-        2. Click "Process Data" to generate personas
-        3. Explore the different tabs to analyze your customers
-        4. Export the results for further use
+        **💅 Trend-Savvy Fashionista** - Fashion & beauty enthusiasts who follow trends
+        **🎌 Otaku Collector** - Dedicated anime fans and merchandise collectors  
+        **🍣 Casual J-Culture Enjoyer** - Light interest in Japanese culture
+        **🧴 Beauty-Focused Minimalist** - J-beauty enthusiasts with minimalist approach
+        **📱 Pop Culture Power User** - Social media savvy trend drivers
+        **🍱 Snack & Lifestyle Explorer** - Food and lifestyle trend explorers
         
-        ### 📊 Sample Data Format:
-        Your data should include columns like:
-        - Customer ID
-        - Location information (city, zip code)
-        - Interest indicators (Yes/No columns)
-        - Behavioral data (frequency, preferences)
-        - Style preferences
-        - Platform usage
+        ### 📊 What You'll Get:
+        - **Persona Assignment**: Each customer matched to best-fit persona
+        - **Confidence Scoring**: Know how well each match fits
+        - **Target Products**: Specific product recommendations per persona
+        - **Marketing Strategy**: Channel and campaign recommendations
+        - **Export Options**: Download results for your marketing team
+        
+        ### 📋 Data Format:
+        Your CSV/Excel should include columns like:
+        - Customer identification (customer_id, customer_city)
+        - J-culture interests (Interested in J-fashion, J-beauty, etc.)
+        - Behavioral data (Fashion Frequency, Streaming Frequency, etc.)
+        - Preferences (Style Preference, Favorite Platform, etc.)
+        - Actions (Buys Merch, Follows Fashion Influencers, etc.)
         
         **Ready to get started? Upload your data using the sidebar! 👈**
         """)
