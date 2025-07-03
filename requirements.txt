@@ -1,5 +1,31 @@
-streamlit
-pandas
-openpyxl
-plotly
-matplotlib
+# Customer Persona Generator Requirements
+# Core Streamlit and Web Framework
+streamlit>=1.28.0
+
+# Data Processing and Analysis
+pandas>=1.5.0
+numpy>=1.24.0
+
+# Data Visualization
+plotly>=5.15.0
+
+# File Processing
+openpyxl>=3.1.0  # For Excel file support
+xlrd>=2.0.0      # For older Excel file formats
+
+# Additional Data Processing (if needed)
+python-dateutil>=2.8.0  # For date handling
+pytz>=2023.3            # For timezone support
+
+# Optional: Enhanced Performance
+# fastparquet>=0.8.0    # For faster parquet file processing
+# pyarrow>=10.0.0       # For improved performance with large datasets
+
+# Development and Testing (optional)
+# pytest>=7.0.0         # For running tests
+# black>=22.0.0         # For code formatting
+# flake8>=5.0.0         # For code linting
+
+# Security and Stability
+# cryptography>=3.4.8   # For enhanced security
+# certifi>=2022.12.7    # For SSL certificate verification
