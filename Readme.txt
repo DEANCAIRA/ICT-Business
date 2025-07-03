@@ -1,86 +1,111 @@
-# 📊 Financial Metrics Comparison App
+# 🎯 Customer Persona Generator
 
-This is a **Streamlit web app** that allows you to upload Excel files of financial statements from multiple companies and compare key metrics like **EBITDA**, **Revenue**, or **Net Profit**.
+A powerful Streamlit application that automatically generates detailed customer personas from uploaded customer data. Transform your customer data into actionable insights with intelligent analysis and beautiful visualizations.
 
----
+## ✨ Features
 
-## 🚀 Features
-- Upload financial Excel files
-- Automatically extract and list available financial metrics
-- Search and select a specific metric
-- View side-by-side comparison charts and tables for multiple companies
-- Export comparison tables to CSV
+### 🔧 Core Functionality
+- **Smart File Upload**: Support for CSV and Excel files (.csv, .xlsx, .xls)
+- **Automatic Analysis**: Intelligently extracts customer interests, behaviors, and preferences
+- **Persona Generation**: Creates detailed, narrative customer personas
+- **Smart Categorization**: Groups customers into meaningful segments
+- **Real-time Processing**: Instant persona generation upon data upload
 
----
+### 📊 Analytics & Visualization
+- **Interactive Dashboard**: Four comprehensive tabs for data exploration
+- **Visual Charts**: Pie charts, bar charts, and geographic distributions
+- **Statistical Analysis**: Comprehensive metrics and insights
+- **Search & Filter**: Easy persona discovery and filtering
+- **Export Options**: Multiple download formats (JSON, CSV)
 
-## 🧾 Excel File Format
-Each Excel file should follow this structure:
+### 🎨 User Experience
+- **Modern UI**: Beautiful, responsive interface with custom styling
+- **Interactive Elements**: Hover effects, animations, and dynamic content
+- **Progress Indicators**: Clear feedback during data processing
+- **Mobile Friendly**: Works on desktop and mobile devices
 
-- **Sheet name:** `Sheet1`
-- **Column 1 (B):** Metric names (e.g., EBITDA, Revenue)
-- **Row 2 (from Column C onward):** Years (e.g., 2020, 2021, 2022...)
-- **Each row:** Values of a single metric across years
+## 🚀 Quick Start
 
-|     | A     | B           | C     | D     | E     |
-|-----|-------|-------------|-------|-------|-------|
-| 1   |       |             | 2020  | 2021  | 2022  |
-| 2   |       | EBITDA      | 100   | 120   | 140   |
-| 3   |       | Revenue     | 500   | 550   | 600   |
-| ... | ...   | ...         | ...   | ...   | ...   |
+### Prerequisites
+- Python 3.7 or higher
+- pip package manager
 
----
+### Installation
 
-## 📁 Repository Contents
-```
-├── app.py                # Streamlit application file
-├── requirements.txt      # Python package dependencies
-├── ALPHA.xlsx            # Example company file (optional)
-├── OMEGA.xlsx            # Example company file (optional)
-└── README.md             # Project documentation
-```
+1. **Clone or download the project files**
+   ```bash
+   git clone <repository-url>
+   cd customer-persona-generator
+   ```
 
----
+2. **Install required packages**
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-## 💻 Local Setup
-```bash
-# 1. Clone the repo
-https://github.com/yourusername/financial-metrics-app.git
+3. **Run the application**
+   ```bash
+   streamlit run persona_generator.py
+   ```
 
-# 2. Navigate to the project folder
-cd financial-metrics-app
+4. **Open your browser**
+   - The app will automatically open at `http://localhost:8501`
+   - If not, manually navigate to the URL shown in your terminal
 
-# 3. Install dependencies
-pip install -r requirements.txt
+## 📋 Data Format
 
-# 4. Run the app
-streamlit run app.py
-```
+### Required Columns
+Your data should include these types of columns:
 
----
+- **Customer Identification**: `customer_id`, `customer_unique_id`
+- **Location Data**: `customer_city`, `customer_zip_code_prefix`
+- **Interest Indicators**: Columns with "Interested in" or similar patterns
+- **Behavioral Data**: Frequency, preferences, habits
+- **Style Information**: Fashion preferences, style choices
 
-## ☁️ Deploy on Streamlit Cloud
-1. Push this code to a public GitHub repository
-2. Go to [https://streamlit.io/cloud](https://streamlit.io/cloud)
-3. Log in and click **New App**
-4. Select your repo and set `app.py` as the entry point
-5. Click **Deploy**
-
----
-
-## 📦 Requirements
-Contents of `requirements.txt`:
-```
-streamlit
-pandas
-openpyxl
-plotly
+### Sample Data Format
+```csv
+customer_id,customer_city,customer_zip_code_prefix,Interested in Fashion,Style Preference,Streaming Frequency,Favorite Platform,Buys Merch
+abc123,New York,10001,Yes,Streetwear,Weekly,Netflix,Yes
+def456,Los Angeles,90210,No,Casual,Monthly,Hulu,No
+ghi789,Chicago,60601,Yes,Vintage,Daily,Disney+,Yes
 ```
 
----
+### Supported Interest Categories
+The system automatically detects and categorizes:
+- **Fashion & Style**: Clothing preferences, fashion trends
+- **Beauty & Skincare**: J-beauty, skincare routines, cosmetics
+- **Entertainment**: Anime, streaming, movies, shows
+- **Lifestyle**: Food, culture, daily routines
+- **Social Media**: Influencers, platforms, trends
+- **Collecting**: Merchandise, collectibles, items
 
-## 📬 Contact
-If you encounter issues or have suggestions, please feel free to open an issue or contact the maintainer.
+## 📊 Application Sections
 
----
+### 1. 📊 Overview Tab
+- **Key Metrics**: Total customers, categories, cities covered
+- **Visual Charts**: Category distribution, interest analysis
+- **Quick Statistics**: High-level insights about your customer base
 
-Created with ❤️ using Streamlit.
+### 2. 👥 Personas Tab
+- **Detailed Personas**: Individual customer profiles with narratives
+- **Search Functionality**: Find specific personas quickly
+- **Category Filtering**: Filter by persona types
+- **Individual Export**: Download specific persona data
+
+### 3. 📈 Analytics Tab
+- **Geographic Distribution**: Customer locations and concentrations
+- **Category Analysis**: Detailed breakdown of customer segments
+- **Interest Patterns**: Most common interests and behaviors
+- **Trend Analysis**: Behavioral patterns across your customer base
+
+### 4. 📋 Raw Data Tab
+- **Original Data View**: Complete uploaded dataset
+- **Export Options**: Download all personas, statistics, or CSV reports
+- **Data Validation**: View processed vs. original data
+
+## 🎯 Persona Categories
+
+The system automatically categorizes customers into:
+
+- **Fash
