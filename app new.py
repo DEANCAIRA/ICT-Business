@@ -15,6 +15,7 @@ class PersonaEngine:
     def __init__(self):
         self.df = None
         self.personas = []
+        self.columns = []
         self.definitions = {
             "Beauty-Focused Minimalist": {
                 "emoji": "🧴",
@@ -39,27 +40,28 @@ class PersonaEngine:
     def load_data(self, file):
         self.df = pd.read_csv(file)
         self.df.columns = self.df.columns.str.strip().str.lower()
+        self.columns = list(self.df.columns)
         return not self.df.empty
 
     def extract_tags(self, row):
         tags = set()
-        def val(key): return str(row.get(key, '')).strip().lower()
+        row = {k.strip().lower(): str(v).strip().lower() for k, v in row.items()}
 
-        if val("interested in j-beauty") in ['yes', 'true', '1']:
+        if row.get("interested in j-beauty", '') in ['yes', 'true', '1']:
             tags.add("j_beauty")
-        if val("daily routine") in ['yes', 'true', '1', 'defined', 'structured']:
+        if row.get("daily routine", '') in ['yes', 'true', '1', 'defined', 'structured']:
             tags.add("daily_routine")
-        if val("j-fashion style") in ['yes', 'true', '1']:
+        if row.get("j-fashion style", '') in ['yes', 'true', '1']:
             tags.add("j_fashion")
-        if any(x in val("style preference") for x in ['kawaii', 'modern', 'street', 'streetwear']):
+        if any(x in row.get("style preference", '') for x in ['kawaii', 'modern', 'street', 'streetwear']):
             tags.add("style_preference")
-        if val("fashion frequency") in ['frequent', 'weekly', 'daily', 'often']:
+        if row.get("fashion frequency", '') in ['frequent', 'weekly', 'daily', 'often']:
             tags.add("fashion_frequency")
-        if val("follow fashion influencers") in ['yes', 'true', '1']:
+        if row.get("follow fashion influencers", '') in ['yes', 'true', '1']:
             tags.add("follows_influencers")
-        if val("streaming frequency") in ['daily', 'weekly', 'frequent', 'often']:
+        if row.get("streaming frequency", '') in ['daily', 'weekly', 'frequent', 'often']:
             tags.add("streams_often")
-        if val("buys merch") in ['yes', 'true', '1', 'frequently', 'often']:
+        if row.get("buys merch", '') in ['yes', 'true', '1', 'frequently', 'often']:
             tags.add("buys_merch")
 
         return tags
@@ -99,6 +101,16 @@ class PersonaEngine:
         df = self.to_df()
         return df.groupby('persona')
 
+    def export_template(self):
+        columns = [
+            "customer_id", "customer_unique_id", "customer_zip_code_prefix", "customer_city",
+            "Interested in J-beauty", "Daily Routine", "Anime Collector", "J-fashion Style",
+            "Interested in Japanese Snacks", "Streaming Frequency", "Favorite Platform",
+            "Buys Merch", "Style Preference", "Fashion Frequency", "Follow Fashion Influencers"
+        ]
+        df = pd.DataFrame(columns=columns)
+        return df
+
 st.title("🎌 J-Culture Customer Persona Profiler")
 st.markdown("Analyze your customers and assign personas based on their interests in Japanese fashion, beauty, and trends.")
 
@@ -107,6 +119,9 @@ file = st.file_uploader("Upload your customer CSV file", type="csv")
 
 if file:
     if engine.load_data(file):
+        st.sidebar.subheader("📋 Columns Detected")
+        st.sidebar.write(engine.columns)
+
         engine.process()
         df_result = engine.to_df()
         stats = engine.get_stats()
@@ -130,6 +145,14 @@ if file:
             label="📥 Download Persona Results",
             data=df_result.to_csv(index=False),
             file_name="persona_results.csv",
+            mime="text/csv"
+        )
+
+        cleaned_template = engine.export_template()
+        st.download_button(
+            label="📥 Download Clean CSV Template",
+            data=cleaned_template.to_csv(index=False),
+            file_name="cleaned_template.csv",
             mime="text/csv"
         )
     else:
