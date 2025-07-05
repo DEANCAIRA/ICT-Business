@@ -36,6 +36,20 @@ class PersonaEngine:
             }
         }
 
+        # MODIFIED: Define product categories and their mapping to tags
+        self.product_category_map = {
+            "J-Beauty & Skincare": ["j_beauty", "daily_routine"],
+            "J-Fashion & Apparel": ["j_fashion", "style_preference", "fashion_frequency"],
+            "Pop Culture Merchandise": ["follows_influencers", "streams_often", "buys_merch"]
+        }
+
+        # MODIFIED: Define example EC shop base URLs for each product category
+        self.ec_links = {
+            "J-Beauty & Skincare": "https://example.com/shop/j-beauty/",
+            "J-Fashion & Apparel": "https://example.com/shop/j-fashion/",
+            "Pop Culture Merchandise": "https://example.com/shop/pop-culture/"
+        }
+
     def load_data(self, file):
         self.df = pd.read_csv(file)
         self.df.columns = self.df.columns.str.strip().str.lower()
@@ -78,6 +92,16 @@ class PersonaEngine:
         for _, row in self.df.iterrows():
             tags = self.extract_tags(row)
             persona = self.assign_persona(tags)
+
+            # MODIFIED: Determine interested products and generate EC links
+            interested_products = set()
+            product_links = []
+            for category, associated_tags in self.product_category_map.items():
+                if any(tag in tags for tag in associated_tags):
+                    interested_products.add(category)
+                    if category in self.ec_links:
+                        product_links.append(f"[{category}]({self.ec_links[category]})") # Format as Markdown link
+
             entry = {
                 "customer_id": row.get("customer_id", ""),
                 "city": row.get("customer_city", "Unknown"),
@@ -86,7 +110,9 @@ class PersonaEngine:
                 "persona": persona,
                 "emoji": self.definitions.get(persona, {}).get("emoji", "❓"),
                 "description": self.definitions.get(persona, {}).get("description", "Not matched"),
-                "tags": list(tags)
+                "tags": list(tags),
+                "interested_products": list(interested_products) if interested_products else "N/A", # MODIFIED: Add interested products
+                "ec_shop_links": ", ".join(product_links) if product_links else "No specific links" # MODIFIED: Add EC links
             }
             self.personas.append(entry)
 
@@ -128,8 +154,6 @@ if file:
         with tab1:
             st.header("📊 Overview")
 
-            # Removed the "Key Customer Facts" section
-
             col1, col2 = st.columns(2)
 
             with col1:
@@ -152,7 +176,9 @@ if file:
             grouped = engine.grouped_by_persona()
             for persona, group in grouped:
                 st.subheader(f"{group.iloc[0]['emoji']} {persona} ({len(group)} customers)")
-                st.dataframe(group[['customer_id', 'city', 'zip', 'phone', 'tags']].reset_index(drop=True))
+                # MODIFIED: Added 'interested_products' and 'ec_shop_links' to the displayed columns
+                st.dataframe(group[['customer_id', 'city', 'zip', 'phone', 'tags', 'interested_products', 'ec_shop_links']].reset_index(drop=True),
+                             column_config={"ec_shop_links": st.column_config.LinkColumn("EC Shop Links")}) # Display links as clickable
 
     else:
         st.error("Failed to read the uploaded file.")
