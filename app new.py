@@ -6,7 +6,7 @@ import plotly.express as px
 import json
 
 st.set_page_config(
-    page_title="J-Culture Customer Persona Generator",
+    page_title="Customer Persona Generator", # MODIFIED: Page title changed
     layout="wide"
 )
 
@@ -82,7 +82,7 @@ class PersonaEngine:
                 "customer_id": row.get("customer_id", ""),
                 "city": row.get("customer_city", "Unknown"),
                 "zip": row.get("customer_zip_code_prefix", "-"),
-                "phone": row.get("phone number", "N/A"), # Corrected key for phone number
+                "phone": row.get("phone number", "N/A"),
                 "persona": persona,
                 "emoji": self.definitions.get(persona, {}).get("emoji", "❓"),
                 "description": self.definitions.get(persona, {}).get("description", "Not matched"),
@@ -111,8 +111,8 @@ class PersonaEngine:
         df = pd.DataFrame(columns=columns)
         return df
 
-st.title("J-Culture Customer Persona Profiler")
-st.markdown("Analyze your customers and assign personas based on their interests in Japanese fashion, beauty, and trends.")
+st.title("Customer Persona Profiler") # MODIFIED: Title changed
+st.markdown("Analyze your customers and assign personas.") # MODIFIED: Sub-title changed
 
 engine = PersonaEngine()
 file = st.file_uploader("Upload your customer CSV file", type="csv")
@@ -128,7 +128,6 @@ if file:
         with tab1:
             st.header("📊 Overview")
 
-            # Suggested additional facts for the overview page
             st.subheader("Key Customer Facts")
             col_facts1, col_facts2, col_facts3 = st.columns(3)
             with col_facts1:
@@ -141,7 +140,7 @@ if file:
                 # Example: Number of unique cities
                 st.metric("Unique Cities", df_result['city'].nunique())
 
-            st.markdown("---") # Separator for visual clarity
+            st.markdown("---")
 
             col1, col2 = st.columns(2)
 
@@ -160,9 +159,6 @@ if file:
                 else:
                     st.info("No city data available or 'customer_city' column not found in the uploaded file.")
 
-            # Removed download buttons from here
-            # st.download_button(...)
-
         with tab2:
             st.header("👥 Detailed Persona Assignments")
             grouped = engine.grouped_by_persona()
@@ -170,11 +166,9 @@ if file:
                 st.subheader(f"{group.iloc[0]['emoji']} {persona} ({len(group)} customers)")
                 st.dataframe(group[['customer_id', 'city', 'zip', 'phone', 'tags']].reset_index(drop=True))
 
-        # Removed download buttons from here as well, if they were intended to be here
-
     else:
         st.error("Failed to read the uploaded file.")
 
 # Footer section
-st.markdown("---") # Optional: Adds a horizontal line above the footer
+st.markdown("---")
 st.markdown("© 2025 Dorenth | Made using Python 🐍", unsafe_allow_html=True)
