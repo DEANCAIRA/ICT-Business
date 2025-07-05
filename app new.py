@@ -7,7 +7,6 @@ import json
 
 st.set_page_config(
     page_title="J-Culture Customer Persona Generator",
-    # page_icon="🎌", # MODIFIED: Removed Japanese flag icon
     layout="wide"
 )
 
@@ -112,7 +111,7 @@ class PersonaEngine:
         df = pd.DataFrame(columns=columns)
         return df
 
-st.title("J-Culture Customer Persona Profiler") # MODIFIED: Removed Japanese flag emoji from title
+st.title("J-Culture Customer Persona Profiler")
 st.markdown("Analyze your customers and assign personas based on their interests in Japanese fashion, beauty, and trends.")
 
 engine = PersonaEngine()
@@ -120,9 +119,6 @@ file = st.file_uploader("Upload your customer CSV file", type="csv")
 
 if file:
     if engine.load_data(file):
-        # st.sidebar.subheader("📋 Columns Detected") # MODIFIED: Commented out to hide
-        # st.sidebar.write(engine.columns) # MODIFIED: Commented out to hide
-
         engine.process()
         df_result = engine.to_df()
         stats = engine.get_stats()
@@ -130,25 +126,42 @@ if file:
         tab1, tab2 = st.tabs(["📊 Overview", "👥 Persona Details"])
 
         with tab1:
-            st.header("📊 Overview") # Changed header for general overview
+            st.header("📊 Overview")
 
-            col1, col2 = st.columns(2) # MODIFIED: Create two columns for side-by-side display
+            # Suggested additional facts for the overview page
+            st.subheader("Key Customer Facts")
+            col_facts1, col_facts2, col_facts3 = st.columns(3)
+            with col_facts1:
+                st.metric("Total Customers", len(df_result))
+            with col_facts2:
+                # Example: Number of customers interested in J-beauty (assuming 'j_beauty' tag indicates this)
+                j_beauty_customers = df_result[df_result['tags'].apply(lambda x: 'j_beauty' in x)]
+                st.metric("J-Beauty Enthusiasts", len(j_beauty_customers))
+            with col_facts3:
+                # Example: Number of unique cities
+                st.metric("Unique Cities", df_result['city'].nunique())
+
+            st.markdown("---") # Separator for visual clarity
+
+            col1, col2 = st.columns(2)
 
             with col1:
-                st.subheader("👥 Persona Distribution") # MODIFIED: Specific subheader for persona
+                st.subheader("👥 Persona Distribution")
                 fig_persona = px.pie(names=list(stats.keys()), values=list(stats.values()), title="Persona Breakdown")
                 st.plotly_chart(fig_persona, use_container_width=True)
 
             with col2:
-                st.subheader("📍 Customer Location") # MODIFIED: Specific subheader for location
+                st.subheader("📍 Customer Location")
                 if 'city' in df_result.columns and not df_result['city'].empty:
                     city_counts = df_result['city'].value_counts().reset_index()
                     city_counts.columns = ['City', 'Count']
-                    fig_city = px.pie(city_counts, names='City', values='Count', title="Customers by City") # MODIFIED: Changed to pie chart
+                    fig_city = px.pie(city_counts, names='City', values='Count', title="Customers by City")
                     st.plotly_chart(fig_city, use_container_width=True)
                 else:
                     st.info("No city data available or 'customer_city' column not found in the uploaded file.")
 
+            # Removed download buttons from here
+            # st.download_button(...)
 
         with tab2:
             st.header("👥 Detailed Persona Assignments")
@@ -157,19 +170,11 @@ if file:
                 st.subheader(f"{group.iloc[0]['emoji']} {persona} ({len(group)} customers)")
                 st.dataframe(group[['customer_id', 'city', 'zip', 'phone', 'tags']].reset_index(drop=True))
 
-        st.download_button(
-            label="📥 Download Persona Results",
-            data=df_result.to_csv(index=False),
-            file_name="persona_results.csv",
-            mime="text/csv"
-        )
+        # Removed download buttons from here as well, if they were intended to be here
 
-        cleaned_template = engine.export_template()
-        st.download_button(
-            label="📥 Download Clean CSV Template",
-            data=cleaned_template.to_csv(index=False),
-            file_name="cleaned_template.csv",
-            mime="text/csv"
-        )
     else:
         st.error("Failed to read the uploaded file.")
+
+# Footer section
+st.markdown("---") # Optional: Adds a horizontal line above the footer
+st.markdown("© 2025 Dorenth | Made using Python 🐍", unsafe_allow_html=True)
