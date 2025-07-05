@@ -39,7 +39,7 @@ class PersonaEngine:
 
     def load_data(self, file):
         self.df = pd.read_csv(file)
-        self.df.columns = self.df.columns.str.strip().str.lower()
+        self.df.columns = self.df.columns.str.strip().str.lower() # Converts 'Phone Number' to 'phone number'
         self.columns = list(self.df.columns)
         return not self.df.empty
 
@@ -83,7 +83,7 @@ class PersonaEngine:
                 "customer_id": row.get("customer_id", ""),
                 "city": row.get("customer_city", "Unknown"),
                 "zip": row.get("customer_zip_code_prefix", "-"),
-                "phone": row.get("phone_number", "N/A"),
+                "phone": row.get("phone number", "N/A"), # MODIFIED: Changed from "phone_number" to "phone number"
                 "persona": persona,
                 "emoji": self.definitions.get(persona, {}).get("emoji", "❓"),
                 "description": self.definitions.get(persona, {}).get("description", "Not matched"),
@@ -134,11 +134,23 @@ if file:
             fig = px.pie(names=list(stats.keys()), values=list(stats.values()), title="Persona Breakdown")
             st.plotly_chart(fig, use_container_width=True)
 
+            # MODIFIED: Added Location Overview
+            st.header("📍 Customer Location Overview")
+            if 'city' in df_result.columns and not df_result['city'].empty:
+                city_counts = df_result['city'].value_counts().reset_index()
+                city_counts.columns = ['City', 'Count']
+                fig_city = px.bar(city_counts, x='City', y='Count', title="Customers by City", color='Count')
+                st.plotly_chart(fig_city, use_container_width=True)
+            else:
+                st.info("No city data available or 'customer_city' column not found in the uploaded file.")
+
+
         with tab2:
             st.header("👥 Detailed Persona Assignments")
             grouped = engine.grouped_by_persona()
             for persona, group in grouped:
                 st.subheader(f"{group.iloc[0]['emoji']} {persona} ({len(group)} customers)")
+                # 'phone' column is now correctly populated
                 st.dataframe(group[['customer_id', 'city', 'zip', 'phone', 'tags']].reset_index(drop=True))
 
         st.download_button(
