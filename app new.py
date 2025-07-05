@@ -7,7 +7,7 @@ import json
 
 st.set_page_config(
     page_title="J-Culture Customer Persona Generator",
-    page_icon="🎌",
+    # page_icon="🎌", # MODIFIED: Removed Japanese flag icon
     layout="wide"
 )
 
@@ -39,7 +39,7 @@ class PersonaEngine:
 
     def load_data(self, file):
         self.df = pd.read_csv(file)
-        self.df.columns = self.df.columns.str.strip().str.lower() # Converts 'Phone Number' to 'phone number'
+        self.df.columns = self.df.columns.str.strip().str.lower()
         self.columns = list(self.df.columns)
         return not self.df.empty
 
@@ -83,7 +83,7 @@ class PersonaEngine:
                 "customer_id": row.get("customer_id", ""),
                 "city": row.get("customer_city", "Unknown"),
                 "zip": row.get("customer_zip_code_prefix", "-"),
-                "phone": row.get("phone number", "N/A"), # MODIFIED: Changed from "phone_number" to "phone number"
+                "phone": row.get("phone number", "N/A"), # Corrected key for phone number
                 "persona": persona,
                 "emoji": self.definitions.get(persona, {}).get("emoji", "❓"),
                 "description": self.definitions.get(persona, {}).get("description", "Not matched"),
@@ -112,7 +112,7 @@ class PersonaEngine:
         df = pd.DataFrame(columns=columns)
         return df
 
-st.title("🎌 J-Culture Customer Persona Profiler")
+st.title("J-Culture Customer Persona Profiler") # MODIFIED: Removed Japanese flag emoji from title
 st.markdown("Analyze your customers and assign personas based on their interests in Japanese fashion, beauty, and trends.")
 
 engine = PersonaEngine()
@@ -120,8 +120,8 @@ file = st.file_uploader("Upload your customer CSV file", type="csv")
 
 if file:
     if engine.load_data(file):
-        st.sidebar.subheader("📋 Columns Detected")
-        st.sidebar.write(engine.columns)
+        # st.sidebar.subheader("📋 Columns Detected") # MODIFIED: Commented out to hide
+        # st.sidebar.write(engine.columns) # MODIFIED: Commented out to hide
 
         engine.process()
         df_result = engine.to_df()
@@ -130,19 +130,24 @@ if file:
         tab1, tab2 = st.tabs(["📊 Overview", "👥 Persona Details"])
 
         with tab1:
-            st.header("📊 Persona Distribution Overview")
-            fig = px.pie(names=list(stats.keys()), values=list(stats.values()), title="Persona Breakdown")
-            st.plotly_chart(fig, use_container_width=True)
+            st.header("📊 Overview") # Changed header for general overview
 
-            # MODIFIED: Added Location Overview
-            st.header("📍 Customer Location Overview")
-            if 'city' in df_result.columns and not df_result['city'].empty:
-                city_counts = df_result['city'].value_counts().reset_index()
-                city_counts.columns = ['City', 'Count']
-                fig_city = px.bar(city_counts, x='City', y='Count', title="Customers by City", color='Count')
-                st.plotly_chart(fig_city, use_container_width=True)
-            else:
-                st.info("No city data available or 'customer_city' column not found in the uploaded file.")
+            col1, col2 = st.columns(2) # MODIFIED: Create two columns for side-by-side display
+
+            with col1:
+                st.subheader("👥 Persona Distribution") # MODIFIED: Specific subheader for persona
+                fig_persona = px.pie(names=list(stats.keys()), values=list(stats.values()), title="Persona Breakdown")
+                st.plotly_chart(fig_persona, use_container_width=True)
+
+            with col2:
+                st.subheader("📍 Customer Location") # MODIFIED: Specific subheader for location
+                if 'city' in df_result.columns and not df_result['city'].empty:
+                    city_counts = df_result['city'].value_counts().reset_index()
+                    city_counts.columns = ['City', 'Count']
+                    fig_city = px.pie(city_counts, names='City', values='Count', title="Customers by City") # MODIFIED: Changed to pie chart
+                    st.plotly_chart(fig_city, use_container_width=True)
+                else:
+                    st.info("No city data available or 'customer_city' column not found in the uploaded file.")
 
 
         with tab2:
@@ -150,7 +155,6 @@ if file:
             grouped = engine.grouped_by_persona()
             for persona, group in grouped:
                 st.subheader(f"{group.iloc[0]['emoji']} {persona} ({len(group)} customers)")
-                # 'phone' column is now correctly populated
                 st.dataframe(group[['customer_id', 'city', 'zip', 'phone', 'tags']].reset_index(drop=True))
 
         st.download_button(
