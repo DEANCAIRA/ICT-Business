@@ -6,7 +6,7 @@ import plotly.express as px
 import json
 
 st.set_page_config(
-    page_title="Customer Persona Generator", # MODIFIED: Page title changed
+    page_title="Customer Persona Generator",
     layout="wide"
 )
 
@@ -111,8 +111,8 @@ class PersonaEngine:
         df = pd.DataFrame(columns=columns)
         return df
 
-st.title("Customer Persona Profiler") # MODIFIED: Title changed
-st.markdown("Analyze your customers and assign personas.") # MODIFIED: Sub-title changed
+st.title("Customer Persona Profiler")
+st.markdown("Analyze your customers and assign personas.")
 
 engine = PersonaEngine()
 file = st.file_uploader("Upload your customer CSV file", type="csv")
@@ -128,19 +128,7 @@ if file:
         with tab1:
             st.header("📊 Overview")
 
-            st.subheader("Key Customer Facts")
-            col_facts1, col_facts2, col_facts3 = st.columns(3)
-            with col_facts1:
-                st.metric("Total Customers", len(df_result))
-            with col_facts2:
-                # Example: Number of customers interested in J-beauty (assuming 'j_beauty' tag indicates this)
-                j_beauty_customers = df_result[df_result['tags'].apply(lambda x: 'j_beauty' in x)]
-                st.metric("J-Beauty Enthusiasts", len(j_beauty_customers))
-            with col_facts3:
-                # Example: Number of unique cities
-                st.metric("Unique Cities", df_result['city'].nunique())
-
-            st.markdown("---")
+            # Removed the "Key Customer Facts" section
 
             col1, col2 = st.columns(2)
 
