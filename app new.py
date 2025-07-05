@@ -83,6 +83,7 @@ class PersonaEngine:
                 "customer_id": row.get("customer_id", ""),
                 "city": row.get("customer_city", "Unknown"),
                 "zip": row.get("customer_zip_code_prefix", "-"),
+                "phone": row.get("phone_number", "N/A"),
                 "persona": persona,
                 "emoji": self.definitions.get(persona, {}).get("emoji", "❓"),
                 "description": self.definitions.get(persona, {}).get("description", "Not matched"),
@@ -103,7 +104,7 @@ class PersonaEngine:
 
     def export_template(self):
         columns = [
-            "customer_id", "customer_unique_id", "customer_zip_code_prefix", "customer_city",
+            "customer_id", "customer_unique_id", "customer_zip_code_prefix", "customer_city", "phone_number",
             "Interested in J-beauty", "Daily Routine", "Anime Collector", "J-fashion Style",
             "Interested in Japanese Snacks", "Streaming Frequency", "Favorite Platform",
             "Buys Merch", "Style Preference", "Fashion Frequency", "Follow Fashion Influencers"
@@ -138,8 +139,7 @@ if file:
             grouped = engine.grouped_by_persona()
             for persona, group in grouped:
                 st.subheader(f"{group.iloc[0]['emoji']} {persona} ({len(group)} customers)")
-                for _, row in group.iterrows():
-                    st.markdown(f"- **ID:** {row['customer_id']} | **City:** {row['city']} | **Tags:** {', '.join(row['tags'])}")
+                st.dataframe(group[['customer_id', 'city', 'zip', 'phone', 'tags']].reset_index(drop=True))
 
         st.download_button(
             label="📥 Download Persona Results",
