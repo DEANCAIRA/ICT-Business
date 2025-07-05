@@ -19,188 +19,144 @@ class PersonaEngine:
             "Beauty-Focused Minimalist": {
                 "emoji": "🧴",
                 "criteria": ["j_beauty", "daily_routine"],
-                "description": "Loves Japanese beauty and skincare routines, preferring a minimalist approach with high-quality products.",
-                "tags": ["beauty", "care"],
-                "recommendations": [
-                    "Biore UV Aqua Rich Watery Essence (Sunscreen)",
-                    "Hada Labo Gokujyun Hyaluronic Acid Lotion (Hydrating Lotion)",
-                    "Melano CC Intensive Anti-Spot Essence (Vitamin C Serum)",
-                    "Canmake Mermaid Skin Gel UV (Sunscreen)",
-                    "Shiseido Fino Premium Touch Hair Mask (Hair Treatment)",
-                    "Senka Perfect Whip Cleansing Foam (Facial Cleanser)",
-                    "Keana Nadeshiko Rice Mask (Face Mask)",
-                    "Products from ILEM JAPAN, MUJI, and Minimalist brands for essential skincare."
-                ]
+                "description": "Loves Japanese beauty and skincare routines.",
+                "tags": ["beauty", "care"]
             },
             "Trend-Savvy Fashionista": {
                 "emoji": "💅",
                 "criteria": ["j_fashion", "style_preference", "fashion_frequency"],
-                "description": "Passionate about fashion and modern Japanese style, always looking for the latest trends.",
-                "tags": ["fashion"],
-                "recommendations": [
-                    "Apparel from popular Japanese brands like Sacai, Comme des Garçons, AMBUSH, Hysteric Glamour, AURALEE, Doublet, SS Stein.",
-                    "Affordable and trendy items from UNIQLO, GU, and BEAMS.",
-                    "Streetwear collections from Neighborhood, Needles, and WTAPS.",
-                    "Unique designs from Issey Miyake and Yohji Yamamoto.",
-                    "Iconic streetwear pieces from BAPE and Undercover."
-                ]
+                "description": "Passionate about fashion and modern Japanese style.",
+                "tags": ["fashion"]
             },
             "Pop Culture Power User": {
                 "emoji": "📱",
                 "criteria": ["follows_influencers", "streams_often", "buys_merch"],
-                "description": "Follows influencers, streams frequently, and loves collecting merchandise from popular Japanese pop culture.",
-                "tags": ["trend", "influencer"],
-                "recommendations": [
-                    "Anime figures (e.g., from series like Demon Slayer, My Hero Academia, Jujutsu Kaisen)",
-                    "Official merchandise (T-shirts, hoodies, keychains, plushies) from popular anime/manga (e.g., Attack on Titan, Naruto, One Piece).",
-                    "Manga volumes and light novels.",
-                    "Exclusive items from stores like BoxLunch, Hot Topic, Crunchyroll Store, Atsuko, Kyou Hobby Shop, and Anime Kaika.",
-                    "Collectibles inspired by Studio Ghibli films or popular video games like Genshin Impact."
-                ]
+                "description": "Follows influencers and loves trends.",
+                "tags": ["trend", "influencer"]
             }
         }
 
     def load_data(self, file):
         self.df = pd.read_csv(file)
-        # Normalize column names: lowercase, strip spaces, replace spaces with underscores
-        self.df.columns = self.df.columns.str.strip().str.lower().str.replace(' ', '_')
-        self.columns = self.df.columns.tolist()
+        self.df.columns = self.df.columns.str.strip().str.lower()
+        self.columns = list(self.df.columns)
+        return not self.df.empty
 
-    def assign_persona(self, customer_data):
-        assigned_personas = []
-        customer_tags = self.extract_tags(customer_data)
+    def extract_tags(self, row):
+        tags = set()
+        row = {k.strip().lower(): str(v).strip().lower() for k, v in row.items()}
 
-        for persona_name, persona_info in self.definitions.items():
-            criteria_met = all(tag in customer_tags for tag in persona_info["criteria"])
-            if criteria_met:
-                assigned_personas.append(persona_name)
-        return assigned_personas if assigned_personas else ["Unassigned"]
+        if row.get("interested in j-beauty", '') in ['yes', 'true', '1']:
+            tags.add("j_beauty")
+        if row.get("daily routine", '') in ['yes', 'true', '1', 'defined', 'structured']:
+            tags.add("daily_routine")
+        if row.get("j-fashion style", '') in ['yes', 'true', '1']:
+            tags.add("j_fashion")
+        if any(x in row.get("style preference", '') for x in ['kawaii', 'modern', 'street', 'streetwear']):
+            tags.add("style_preference")
+        if row.get("fashion frequency", '') in ['frequent', 'weekly', 'daily', 'often']:
+            tags.add("fashion_frequency")
+        if row.get("follow fashion influencers", '') in ['yes', 'true', '1']:
+            tags.add("follows_influencers")
+        if row.get("streaming frequency", '') in ['daily', 'weekly', 'frequent', 'often']:
+            tags.add("streams_often")
+        if row.get("buys merch", '') in ['yes', 'true', '1', 'frequently', 'often']:
+            tags.add("buys_merch")
 
-    def extract_tags(self, customer_data):
-        tags = []
-        # Extract tags based on normalized column names and expected values (e.g., 1 for true)
-        if 'interested_in_j-beauty' in customer_data and customer_data['interested_in_j-beauty'] == 1:
-            tags.append('j_beauty')
-        if 'daily_routine' in customer_data and customer_data['daily_routine'] == 1:
-            tags.append('daily_routine')
-        if 'j-fashion_style' in customer_data and customer_data['j-fashion_style'] == 1:
-            tags.append('j_fashion')
-        if 'style_preference' in customer_data and customer_data['style_preference'] == 1:
-            tags.append('style_preference')
-        if 'fashion_frequency' in customer_data and customer_data['fashion_frequency'] == 1:
-            tags.append('fashion_frequency')
-        if 'follows_fashion_influencers' in customer_data and customer_data['follows_fashion_influencers'] == 1:
-            tags.append('follows_influencers')
-        if 'streaming_frequency' in customer_data and customer_data['streaming_frequency'] == 1:
-            tags.append('streams_often')
-        if 'buys_merch' in customer_data and customer_data['buys_merch'] == 1:
-            tags.append('buys_merch')
         return tags
 
-    def run_analysis(self):
-        if self.df is None:
-            return None
+    def assign_persona(self, tags):
+        best = ("Unclassified", 0)
+        for name, config in self.definitions.items():
+            score = sum(1 for c in config['criteria'] if c in tags)
+            if score > best[1]:
+                best = (name, score)
+        return best[0] if best[1] > 0 else "Unclassified"
 
-        # Ensure 'persona' column exists and is assigned
-        if 'persona' not in self.df.columns:
-            self.df['persona'] = self.df.apply(lambda row: self.assign_persona(row), axis=1)
-            # Take the first assigned persona if multiple, or keep as list for multi-persona assignment
-            self.df['persona'] = self.df['persona'].apply(lambda x: x[0] if x else 'Unassigned')
+    def process(self):
+        self.personas = []
+        for _, row in self.df.iterrows():
+            tags = self.extract_tags(row)
+            persona = self.assign_persona(tags)
+            entry = {
+                "customer_id": row.get("customer_id", ""),
+                "city": row.get("customer_city", "Unknown"),
+                "zip": row.get("customer_zip_code_prefix", "-"),
+                "phone": row.get("phone number", "N/A"),
+                "persona": persona,
+                "emoji": self.definitions.get(persona, {}).get("emoji", "❓"),
+                "description": self.definitions.get(persona, {}).get("description", "Not matched"),
+                "tags": list(tags)
+            }
+            self.personas.append(entry)
 
+    def get_stats(self):
+        counter = Counter([p['persona'] for p in self.personas])
+        return counter
 
-        persona_counts = self.df['persona'].value_counts()
-        return persona_counts.to_dict()
+    def to_df(self):
+        return pd.DataFrame(self.personas)
 
     def grouped_by_persona(self):
-        if self.df is None:
-            return []
+        df = self.to_df()
+        return df.groupby('persona')
 
-        grouped = self.df.groupby('persona')
-        result = []
-        for persona, group in grouped:
-            emoji = self.definitions.get(persona, {}).get('emoji', '❓')
-            group_with_emoji = group.copy()
-            group_with_emoji['emoji'] = emoji
-            result.append((persona, group_with_emoji))
-        return result
+    def export_template(self):
+        columns = [
+            "customer_id", "customer_unique_id", "customer_zip_code_prefix", "customer_city", "phone_number",
+            "Interested in J-beauty", "Daily Routine", "Anime Collector", "J-fashion Style",
+            "Interested in Japanese Snacks", "Streaming Frequency", "Favorite Platform",
+            "Buys Merch", "Style Preference", "Fashion Frequency", "Follow Fashion Influencers"
+        ]
+        df = pd.DataFrame(columns=columns)
+        return df
 
-
-st.title("Customer Persona Generator & Product Recommender")
+st.title("Customer Persona Profiler")
+st.markdown("Analyze your customers and assign personas.")
 
 engine = PersonaEngine()
+file = st.file_uploader("Upload your customer CSV file", type="csv")
 
-uploaded_file = st.file_uploader("Upload your CSV file", type=["csv"])
+if file:
+    if engine.load_data(file):
+        engine.process()
+        df_result = engine.to_df()
+        stats = engine.get_stats()
 
-if uploaded_file:
-    try:
-        engine.load_data(uploaded_file)
-        st.success("File uploaded and data loaded successfully!")
+        tab1, tab2 = st.tabs(["📊 Overview", "👥 Persona Details"])
 
-        st.sidebar.header("Data Preview")
-        st.sidebar.dataframe(engine.df.head())
+        with tab1:
+            st.header("📊 Overview")
 
-        if st.sidebar.button("Run Persona Analysis"):
-            stats = engine.run_analysis()
+            # Removed the "Key Customer Facts" section
 
-            tab1, tab2 = st.tabs(["📊 Dashboard", "👥 Detailed Persona Assignments"])
+            col1, col2 = st.columns(2)
 
-            with tab1:
-                st.header("📊 Persona Overview")
-                if stats:
-                    col1, col2 = st.columns(2)
+            with col1:
+                st.subheader("👥 Persona Distribution")
+                fig_persona = px.pie(names=list(stats.keys()), values=list(stats.values()), title="Persona Breakdown")
+                st.plotly_chart(fig_persona, use_container_width=True)
 
-                    with col1:
-                        st.subheader("👥 Persona Distribution")
-                        fig_persona = px.pie(names=list(stats.keys()), values=list(stats.values()), title="Persona Breakdown")
-                        st.plotly_chart(fig_persona, use_container_width=True)
-
-                    with col2:
-                        st.subheader("📍 Customer Location")
-                        # Adjust column names for display if they exist after normalization
-                        city_col = next((col for col in ['customer_city', 'city'] if col in engine.df.columns), None)
-                        if city_col and not engine.df[city_col].empty:
-                            city_counts = engine.df[city_col].value_counts().reset_index()
-                            city_counts.columns = ['City', 'Count']
-                            fig_city = px.pie(city_counts, names='City', values='Count', title="Customers by City")
-                            st.plotly_chart(fig_city, use_container_width=True)
-                        else:
-                            st.info("No city data available or relevant city column not found in the uploaded file.")
+            with col2:
+                st.subheader("📍 Customer Location")
+                if 'city' in df_result.columns and not df_result['city'].empty:
+                    city_counts = df_result['city'].value_counts().reset_index()
+                    city_counts.columns = ['City', 'Count']
+                    fig_city = px.pie(city_counts, names='City', values='Count', title="Customers by City")
+                    st.plotly_chart(fig_city, use_container_width=True)
                 else:
-                    st.error("Failed to generate persona statistics. Please check your file format and content.")
+                    st.info("No city data available or 'customer_city' column not found in the uploaded file.")
 
-            with tab2:
-                st.header("👥 Detailed Persona Assignments and Product Recommendations")
-                grouped = engine.grouped_by_persona()
-                if grouped:
-                    for persona, group in grouped:
-                        st.subheader(f"{group.iloc[0]['emoji']} {persona} ({len(group)} customers)")
-                        
-                        # Select relevant display columns, adjusting for normalized names
-                        display_cols = ['customer_id', 'tags']
-                        if 'customer_city' in group.columns:
-                            display_cols.insert(1, 'customer_city')
-                        elif 'city' in group.columns:
-                            display_cols.insert(1, 'city')
-                        
-                        if 'customer_zip_code_prefix' in group.columns:
-                            display_cols.insert(2, 'customer_zip_code_prefix')
-                        elif 'zip' in group.columns:
-                            display_cols.insert(2, 'zip')
+        with tab2:
+            st.header("👥 Detailed Persona Assignments")
+            grouped = engine.grouped_by_persona()
+            for persona, group in grouped:
+                st.subheader(f"{group.iloc[0]['emoji']} {persona} ({len(group)} customers)")
+                st.dataframe(group[['customer_id', 'city', 'zip', 'phone', 'tags']].reset_index(drop=True))
 
-                        st.dataframe(group[display_cols].reset_index(drop=True))
+    else:
+        st.error("Failed to read the uploaded file.")
 
-                        # Display product recommendations
-                        if persona in engine.definitions and "recommendations" in engine.definitions[persona]:
-                            st.markdown(f"**💡 Product Recommendations for {persona}:**")
-                            for rec in engine.definitions[persona]["recommendations"]:
-                                st.write(f"- {rec}")
-                        st.markdown("---") # Separator
-                else:
-                    st.info("No detailed persona assignments to display. Please run the analysis.")
-
-    except Exception as e:
-        st.error(f"Failed to read the uploaded file: {e}. Please ensure it's a valid CSV.")
-
-# Footer (optional)
+# Footer section
 st.markdown("---")
-st.markdown("Developed by Your Name/Company")
+st.markdown("© 2025 Dorenth | Made using Python 🐍", unsafe_allow_html=True)
