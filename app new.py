@@ -43,23 +43,23 @@ class PersonaEngine:
 
     def extract_tags(self, row):
         tags = set()
-        def val(key): return str(row.get(key, '')).lower()
+        def val(key): return str(row.get(key, '')).strip().lower()
 
-        if 'yes' in val("interested in j-beauty") or 'true' in val("interested in j-beauty"):
+        if val("interested in j-beauty") in ['yes', 'true', '1']:
             tags.add("j_beauty")
-        if 'yes' in val("daily routine") or 'defined' in val("daily routine"):
+        if val("daily routine") in ['yes', 'true', '1', 'defined', 'structured']:
             tags.add("daily_routine")
-        if 'yes' in val("j-fashion style"):
+        if val("j-fashion style") in ['yes', 'true', '1']:
             tags.add("j_fashion")
-        if any(x in val("style preference") for x in ['kawaii', 'modern', 'street']):
+        if any(x in val("style preference") for x in ['kawaii', 'modern', 'street', 'streetwear']):
             tags.add("style_preference")
-        if val("fashion frequency") in ['frequent', 'weekly', 'daily']:
+        if val("fashion frequency") in ['frequent', 'weekly', 'daily', 'often']:
             tags.add("fashion_frequency")
-        if 'yes' in val("follow fashion influencers"):
+        if val("follow fashion influencers") in ['yes', 'true', '1']:
             tags.add("follows_influencers")
-        if val("streaming frequency") in ['daily', 'weekly']:
+        if val("streaming frequency") in ['daily', 'weekly', 'frequent', 'often']:
             tags.add("streams_often")
-        if 'yes' in val("buys merch"):
+        if val("buys merch") in ['yes', 'true', '1', 'frequently', 'often']:
             tags.add("buys_merch")
 
         return tags
@@ -95,6 +95,10 @@ class PersonaEngine:
     def to_df(self):
         return pd.DataFrame(self.personas)
 
+    def grouped_by_persona(self):
+        df = self.to_df()
+        return df.groupby('persona')
+
 st.title("🎌 J-Culture Customer Persona Profiler")
 st.markdown("Analyze your customers and assign personas based on their interests in Japanese fashion, beauty, and trends.")
 
@@ -104,29 +108,26 @@ file = st.file_uploader("Upload your customer CSV file", type="csv")
 if file:
     if engine.load_data(file):
         engine.process()
-
         df_result = engine.to_df()
         stats = engine.get_stats()
 
-        st.success("Personas assigned successfully!")
+        tab1, tab2 = st.tabs(["📊 Overview", "👥 Persona Details"])
 
-        st.subheader("📊 Persona Distribution")
-        fig = px.pie(names=list(stats.keys()), values=list(stats.values()), title="Persona Breakdown")
-        st.plotly_chart(fig, use_container_width=True)
+        with tab1:
+            st.header("📊 Persona Distribution Overview")
+            fig = px.pie(names=list(stats.keys()), values=list(stats.values()), title="Persona Breakdown")
+            st.plotly_chart(fig, use_container_width=True)
 
-        st.subheader("👥 Customer Persona Details")
-        for p in engine.personas:
-            with st.expander(f"{p['emoji']} {p['persona']} - {p['city']}"):
-                st.write(f"**Customer ID:** {p['customer_id']}")
-                st.write(f"**City:** {p['city']}")
-                st.write(f"**ZIP Code:** {p['zip']}")
-                st.write(f"**Persona:** {p['persona']}")
-                st.write(f"**Profile Tags:** {', '.join(p['tags'])}")
-                st.write(f"**Summary:** {p['description']}")
+        with tab2:
+            st.header("👥 Detailed Persona Assignments")
+            grouped = engine.grouped_by_persona()
+            for persona, group in grouped:
+                st.subheader(f"{group.iloc[0]['emoji']} {persona} ({len(group)} customers)")
+                for _, row in group.iterrows():
+                    st.markdown(f"- **ID:** {row['customer_id']} | **City:** {row['city']} | **Tags:** {', '.join(row['tags'])}")
 
-        st.subheader("📥 Download Persona Results")
         st.download_button(
-            label="Download as CSV",
+            label="📥 Download Persona Results",
             data=df_result.to_csv(index=False),
             file_name="persona_results.csv",
             mime="text/csv"
