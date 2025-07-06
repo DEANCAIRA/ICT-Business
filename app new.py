@@ -268,7 +268,7 @@ if file:
             with col1:
                 st.subheader("👥 Persona Distribution")
                 # Ensure persona distribution reflects combined persona names
-                if not stats.empty: # Check if stats is not empty before plotting
+                if stats: # Corrected: Check if Counter object is not empty
                     fig_persona = px.pie(names=list(stats.keys()), values=list(stats.values()), title="Persona Breakdown")
                     st.plotly_chart(fig_persona, use_container_width=True)
                 else:
