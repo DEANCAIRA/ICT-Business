@@ -111,7 +111,7 @@ class PersonaEngine:
         if row.get("daily routine", '') in ['yes', 'true', '1', 'defined', 'structured']:
             tags.add("daily_routine")
         # Example for j_beauty_natural - assuming 'natural' is a specific value in 'j-beauty style' or similar
-        if "natural" in row.get("j-beauty style", '').lower():
+        if "natural" in row.get("j-beauty style", '').lower(): # Assuming a column like 'j-beauty style' exists
             tags.add("j_beauty_natural")
 
         if row.get("j-fashion style", '') in ['yes', 'true', '1']:
@@ -135,7 +135,7 @@ class PersonaEngine:
         if row.get("buys merch", '') in ['yes', 'true', '1', 'frequently', 'often']:
             tags.add("buys_merch")
         # Add a tag for Anime Collector if that's a direct column/data point
-        if row.get("anime collector", '') in ['yes', 'true', '1']:
+        if row.get("anime collector", '') in ['yes', 'true', '1']: # Assuming a column like 'anime collector' exists
             tags.add("anime_collector")
 
         return tags
@@ -168,8 +168,11 @@ class PersonaEngine:
 
     def process(self):
         self.personas = []
+        all_extracted_tags = [] # To collect all tags for overview
         for _, row in self.df.iterrows():
             tags = self.extract_tags(row)
+            all_extracted_tags.extend(list(tags)) # Collect all tags
+            
             main_persona, sub_persona = self.assign_persona(tags)
             
             persona_display_name = main_persona
@@ -180,11 +183,13 @@ class PersonaEngine:
             if sub_persona:
                 sub_config = self.definitions[main_persona]["sub_personas"][sub_persona]
                 persona_display_name = f"{main_persona} ({sub_persona})"
-                full_description = f"{full_description} - {sub_config.get('description', '')}"
-                # Combine product recommendations, prioritize sub-persona's if defined
+                # Combine descriptions for a richer view
+                full_description = f"{full_description} - *Sub-persona focus: {sub_config.get('description', '')}*"
+                
+                # Combine product recommendations, prioritizing sub-persona's if defined, otherwise append
                 sub_product_recs = sub_config.get("product_recommendations", [])
                 if sub_product_recs:
-                    product_recs = sub_product_recs
+                    product_recs = list(set(product_recs + sub_product_recs)) # Use set to avoid duplicates and convert back to list
                 # Use sub-persona emoji if available, otherwise main persona's
                 persona_emoji = sub_config.get("emoji", persona_emoji)
 
@@ -199,15 +204,21 @@ class PersonaEngine:
                 "sub_persona": sub_persona if sub_persona else "N/A", # Store sub-persona separately
                 "emoji": persona_emoji,
                 "description": full_description,
-                "tags": list(tags),
-                "product_recommendations": product_recs
+                "product_recommendations": product_recs,
+                "tags": list(tags) # Keep original extracted tags for individual entry
             }
             self.personas.append(entry)
+        self.all_extracted_tags_flat = all_extracted_tags # Store flat list of all tags for overview
 
     def get_stats(self):
         # Stats based on the combined persona_display_name
         counter = Counter([p['persona'] for p in self.personas])
         return counter
+    
+    def get_tag_counts(self, top_n=10):
+        # Count occurrences of all extracted tags
+        tag_counts = Counter(self.all_extracted_tags_flat)
+        return tag_counts.most_common(top_n)
 
     def to_df(self):
         return pd.DataFrame(self.personas)
@@ -245,23 +256,70 @@ if file:
         with tab1:
             st.header("📊 Overview")
 
+            st.markdown(f"**Total Customers Processed:** {len(engine.df)}")
+            unclassified_count = stats.get("Unclassified", 0)
+            if unclassified_count > 0:
+                st.warning(f"**Unclassified Customers:** {unclassified_count} ({unclassified_count/len(engine.df)*100:.1f}%) - Consider refining your persona criteria for these customers.")
+            else:
+                st.success("All customers have been assigned a persona!")
+
             col1, col2 = st.columns(2)
 
             with col1:
                 st.subheader("👥 Persona Distribution")
                 # Ensure persona distribution reflects combined persona names
-                fig_persona = px.pie(names=list(stats.keys()), values=list(stats.values()), title="Persona Breakdown")
-                st.plotly_chart(fig_persona, use_container_width=True)
+                if not stats.empty: # Check if stats is not empty before plotting
+                    fig_persona = px.pie(names=list(stats.keys()), values=list(stats.values()), title="Persona Breakdown")
+                    st.plotly_chart(fig_persona, use_container_width=True)
+                else:
+                    st.info("No personas assigned yet or data is empty.")
 
             with col2:
                 st.subheader("📍 Customer Location")
                 if 'city' in df_result.columns and not df_result['city'].empty:
                     city_counts = df_result['city'].value_counts().reset_index()
                     city_counts.columns = ['City', 'Count']
-                    fig_city = px.pie(city_counts, names='City', values='Count', title="Customers by City")
-                    st.plotly_chart(fig_city, use_container_width=True)
+                    if not city_counts.empty: # Check if city_counts is not empty
+                        fig_city = px.pie(city_counts, names='City', values='Count', title="Customers by City")
+                        st.plotly_chart(fig_city, use_container_width=True)
+                    else:
+                        st.info("No city data to display.")
                 else:
-                    st.info("No city data available or 'customer_city' column not found in the uploaded file.")
+                    st.info("No 'customer_city' column found or it is empty in the uploaded file.")
+            
+            st.markdown("---")
+            st.subheader("💡 Top Extracted Tags")
+            top_tags = engine.get_tag_counts(top_n=10)
+            if top_tags:
+                tag_df = pd.DataFrame(top_tags, columns=['Tag', 'Count'])
+                fig_tags = px.bar(tag_df, x='Tag', y='Count', title="Most Frequent Extracted Tags",
+                                  labels={'Tag': 'Extracted Tag', 'Count': 'Number of Customers'})
+                st.plotly_chart(fig_tags, use_container_width=True)
+            else:
+                st.info("No tags extracted from the data.")
+
+            st.markdown("---")
+            st.subheader("📊 Key Customer Attribute Distributions")
+            # Example for "Interested in J-beauty"
+            if "interested in j-beauty" in engine.df.columns:
+                jbeauty_counts = engine.df["interested in j-beauty"].value_counts().reset_index()
+                jbeauty_counts.columns = ['Response', 'Count']
+                fig_jbeauty = px.pie(jbeauty_counts, names='Response', values='Count', 
+                                     title="Distribution: Interested in J-Beauty", hole=0.3)
+                st.plotly_chart(fig_jbeauty, use_container_width=True)
+            else:
+                st.info("Column 'Interested in J-beauty' not found for distribution analysis.")
+            
+            # Example for "Fashion Frequency"
+            if "fashion frequency" in engine.df.columns:
+                fashion_freq_counts = engine.df["fashion frequency"].value_counts().reset_index()
+                fashion_freq_counts.columns = ['Frequency', 'Count']
+                fig_fashion_freq = px.bar(fashion_freq_counts, x='Frequency', y='Count', 
+                                         title="Distribution: Fashion Frequency")
+                st.plotly_chart(fig_fashion_freq, use_container_width=True)
+            else:
+                st.info("Column 'Fashion Frequency' not found for distribution analysis.")
+
 
         with tab2:
             st.header("👥 Detailed Persona Assignments")
@@ -273,6 +331,7 @@ if file:
                 st.subheader(f"{group.iloc[0]['emoji']} {persona_combined_name} ({len(group)} customers)")
                 st.write(f"**Description:** {group.iloc[0]['description']}")
                 st.write(f"**Recommended Products:** {', '.join(group.iloc[0]['product_recommendations'])}")
+                # Display main_persona and sub_persona as separate columns in the dataframe
                 st.dataframe(group[['customer_id', 'city', 'zip', 'phone', 'main_persona', 'sub_persona', 'tags']].reset_index(drop=True))
 
     else:
