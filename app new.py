@@ -287,16 +287,7 @@ if file:
                 else:
                     st.info("No 'customer_city' column found or it is empty in the uploaded file.")
             
-            st.markdown("---")
-            st.subheader("💡 Top Extracted Tags")
-            top_tags = engine.get_tag_counts(top_n=10)
-            if top_tags:
-                tag_df = pd.DataFrame(top_tags, columns=['Tag', 'Count'])
-                fig_tags = px.bar(tag_df, x='Tag', y='Count', title="Most Frequent Extracted Tags",
-                                  labels={'Tag': 'Extracted Tag', 'Count': 'Number of Customers'})
-                st.plotly_chart(fig_tags, use_container_width=True)
-            else:
-                st.info("No tags extracted from the data.")
+            # Removed "Top Extracted Tags" section as requested.
 
             st.markdown("---")
             st.subheader("📊 Key Customer Attribute Distributions")
