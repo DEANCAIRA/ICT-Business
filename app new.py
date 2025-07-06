@@ -256,19 +256,14 @@ if file:
         with tab1:
             st.header("📊 Overview")
 
-            st.markdown(f"**Total Customers Processed:** {len(engine.df)}")
-            unclassified_count = stats.get("Unclassified", 0)
-            if unclassified_count > 0:
-                st.warning(f"**Unclassified Customers:** {unclassified_count} ({unclassified_count/len(engine.df)*100:.1f}%) - Consider refining your persona criteria for these customers.")
-            else:
-                st.success("All customers have been assigned a persona!")
+            # Removed Total Customers Processed and Unclassified Customers metrics
 
             col1, col2 = st.columns(2)
 
             with col1:
                 st.subheader("👥 Persona Distribution")
                 # Ensure persona distribution reflects combined persona names
-                if stats: # Corrected: Check if Counter object is not empty
+                if stats: # Check if Counter object is not empty
                     fig_persona = px.pie(names=list(stats.keys()), values=list(stats.values()), title="Persona Breakdown")
                     st.plotly_chart(fig_persona, use_container_width=True)
                 else:
@@ -287,29 +282,7 @@ if file:
                 else:
                     st.info("No 'customer_city' column found or it is empty in the uploaded file.")
             
-            # Removed "Top Extracted Tags" section as requested.
-
-            st.markdown("---")
-            st.subheader("📊 Key Customer Attribute Distributions")
-            # Example for "Interested in J-beauty"
-            if "interested in j-beauty" in engine.df.columns:
-                jbeauty_counts = engine.df["interested in j-beauty"].value_counts().reset_index()
-                jbeauty_counts.columns = ['Response', 'Count']
-                fig_jbeauty = px.pie(jbeauty_counts, names='Response', values='Count', 
-                                     title="Distribution: Interested in J-Beauty", hole=0.3)
-                st.plotly_chart(fig_jbeauty, use_container_width=True)
-            else:
-                st.info("Column 'Interested in J-beauty' not found for distribution analysis.")
-            
-            # Example for "Fashion Frequency"
-            if "fashion frequency" in engine.df.columns:
-                fashion_freq_counts = engine.df["fashion frequency"].value_counts().reset_index()
-                fashion_freq_counts.columns = ['Frequency', 'Count']
-                fig_fashion_freq = px.bar(fashion_freq_counts, x='Frequency', y='Count', 
-                                         title="Distribution: Fashion Frequency")
-                st.plotly_chart(fig_fashion_freq, use_container_width=True)
-            else:
-                st.info("Column 'Fashion Frequency' not found for distribution analysis.")
+            # Removed "Top Extracted Tags" section and "Key Customer Attribute Distributions" section.
 
 
         with tab2:
