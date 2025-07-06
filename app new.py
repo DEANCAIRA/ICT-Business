@@ -20,19 +20,30 @@ class PersonaEngine:
                 "emoji": "🧴",
                 "criteria": ["j_beauty", "daily_routine"],
                 "description": "Loves Japanese beauty and skincare routines.",
-                "tags": ["beauty", "care"]
+                "tags": ["beauty", "care"],
+                "product_recommendations": ["Japanese Cleansing Oil", "Hydrating Essence", "Sheet Masks", "Gentle Foaming Cleanser", "Ceramide Moisturizer"]
             },
             "Trend-Savvy Fashionista": {
                 "emoji": "💅",
                 "criteria": ["j_fashion", "style_preference", "fashion_frequency"],
                 "description": "Passionate about fashion and modern Japanese style.",
-                "tags": ["fashion"]
+                "tags": ["fashion"],
+                "product_recommendations": ["Harajuku Style Hoodie", "Kimono Cardigan", "Statement Sneakers", "Graphic T-shirts", "Unique Accessories"]
             },
             "Pop Culture Power User": {
                 "emoji": "📱",
                 "criteria": ["follows_influencers", "streams_often", "buys_merch"],
                 "description": "Follows influencers and loves trends.",
-                "tags": ["trend", "influencer"]
+                "tags": ["trend", "influencer"],
+                "product_recommendations": ["Anime Figurines", "Manga Series", "Limited Edition Merchandise", "Gaming Headsets", "Collectible Art Books"]
+            },
+            # Adding a new persona for "Style Seeker" as requested in the prompt
+            "Style Seeker": {
+                "emoji": "👗",
+                "criteria": ["j_fashion", "style_preference"],
+                "description": "Always looking for the latest fashion trends and unique styles.",
+                "tags": ["fashion", "style"],
+                "product_recommendations": ["Streetwear Jeans", "Designer T-shirts", "Vintage Jackets", "Stylish Footwear", "Fashion Magazines"]
             }
         }
 
@@ -86,7 +97,8 @@ class PersonaEngine:
                 "persona": persona,
                 "emoji": self.definitions.get(persona, {}).get("emoji", "❓"),
                 "description": self.definitions.get(persona, {}).get("description", "Not matched"),
-                "tags": list(tags)
+                "tags": list(tags),
+                "product_recommendations": self.definitions.get(persona, {}).get("product_recommendations", ["No specific recommendations"])
             }
             self.personas.append(entry)
 
@@ -128,8 +140,6 @@ if file:
         with tab1:
             st.header("📊 Overview")
 
-            # Removed the "Key Customer Facts" section
-
             col1, col2 = st.columns(2)
 
             with col1:
@@ -152,6 +162,8 @@ if file:
             grouped = engine.grouped_by_persona()
             for persona, group in grouped:
                 st.subheader(f"{group.iloc[0]['emoji']} {persona} ({len(group)} customers)")
+                st.write(f"**Description:** {group.iloc[0]['description']}")
+                st.write(f"**Recommended Products:** {', '.join(group.iloc[0]['product_recommendations'])}")
                 st.dataframe(group[['customer_id', 'city', 'zip', 'phone', 'tags']].reset_index(drop=True))
 
     else:
