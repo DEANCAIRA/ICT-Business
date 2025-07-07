@@ -152,4 +152,4 @@ else:
     st.info("👈 Upload your `cleaned_unique_customers.csv` to begin.")
 
 st.markdown("---")
-st.markdown("© 2025 Dorenth | Built with ❤️ using Streamlit")
+st.markdown("© 2025 Dorenth | Made using Python \ud83d\udc0d\")
