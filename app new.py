@@ -103,7 +103,7 @@ class PersonaEngine:
 
 # --- Streamlit UI ---
 st.title("🎯 Customer Persona Profiler")
-st.markdown("Upload a CSV to classify customers. Scores shown for transparency.")
+st.markdown("Upload a CSV to classify customers. Scores are displayed for transparency.")
 
 engine = PersonaEngine()
 file = st.file_uploader("📤 Upload your `cleaned_unique_customers.csv`", type="csv")
@@ -115,7 +115,7 @@ if file:
         stats = engine.get_stats()
         city_counts = engine.get_city_stats()
 
-        tab1, tab2 = st.tabs(["📊 Overview", "👥 Persona Table"])
+        tab1, tab2 = st.tabs(["📊 Overview", "👥 Persona Groups"])
 
         with tab1:
             col1, col2 = st.columns(2)
@@ -141,8 +141,8 @@ if file:
                 st.plotly_chart(fig_city, use_container_width=True)
 
         with tab2:
-            st.subheader("📋 Full Customer Table (with Persona Score Breakdown)")
-            display_df = df_result[[
+            st.subheader("📋 Customers Grouped by Persona (With Score Breakdown)")
+            group_df = df_result[[
                 "email", "phone", "city", "interest", "product_interest", "concerts_attended",
                 "emoji", "persona", "score_fashion", "score_beauty", "score_japanese"
             ]].rename(columns={
@@ -151,7 +151,12 @@ if file:
                 "score_beauty": "💄 Beauty Score",
                 "score_japanese": "🎌 Japanese Score"
             })
-            st.dataframe(display_df, use_container_width=True)
+
+            for persona in ["Fashion Devotee", "Beauty Maven", "Japanese Lover", "Unclassified"]:
+                filtered = group_df[group_df["Primary Persona"] == persona]
+                if not filtered.empty:
+                    st.markdown(f"### {filtered.iloc[0]['🎭']} {persona} ({len(filtered)} customers)")
+                    st.dataframe(filtered.drop(columns=["Primary Persona", "🎭"]).reset_index(drop=True), use_container_width=True)
 
     else:
         st.error("❌ Failed to read the uploaded CSV. Please check the format.")
