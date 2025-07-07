@@ -29,7 +29,7 @@ class PersonaEngine:
                 "japanese": 1,
                 "anime": 1,
                 "kol": 1
-                # 'live performance' excluded from static list
+                # live performance handled separately
             }
         }
 
@@ -39,24 +39,22 @@ class PersonaEngine:
         return not self.df.empty
 
     def assign_persona(self, interest: str, product_category: str):
+        # Normalize input text
         combined_text = f"{interest} {product_category}".lower()
-        # Normalize: remove punctuation, unify spaces
         text = re.sub(r'[^a-zA-Z0-9\s]', ' ', combined_text)
         text = re.sub(r'\s+', ' ', text).strip()
 
         scores = {p: 0 for p in self.weights}
 
-        # Score based on static keyword weights
         for persona, keywords in self.weights.items():
             for kw, weight in keywords.items():
                 if kw in text:
                     scores[persona] += weight
 
-        # Special: live performance only counts for Japanese Lover with context
+        # Special case for live performance under Japanese context
         if "live performance" in text and ("japanese" in text or "kol" in text):
             scores["Japanese Lover"] += 1
 
-        # Pick persona with highest score
         best = max(scores, key=lambda p: scores[p])
         return best if scores[best] > 0 else "Unclassified"
 
@@ -103,7 +101,7 @@ class PersonaEngine:
 
 # --- Streamlit UI ---
 st.title("🎯 Customer Persona Profiler")
-st.markdown("Upload your customer CSV to generate personas using smart weighted keyword logic.")
+st.markdown("Upload your customer CSV to generate personas using weighted keyword matching with proper text normalization.")
 
 engine = PersonaEngine()
 file = st.file_uploader("📤 Upload your `cleaned_unique_customers.csv`", type="csv")
@@ -151,7 +149,7 @@ if file:
                     ]].reset_index(drop=True)
                 )
     else:
-        st.error("❌ Could not read the uploaded CSV. Check its format.")
+        st.error("❌ Failed to read the uploaded CSV. Check its format.")
 else:
     st.info("👈 Please upload `cleaned_unique_customers.csv` to begin.")
 
