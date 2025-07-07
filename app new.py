@@ -99,7 +99,7 @@ class PersonaEngine:
 
 
 # --- Streamlit UI ---
-st.title("🎯 Customer Persona Profiler")
+st.title("Customer Persona Profiler")
 st.markdown("Upload your customer CSV to generate personas based on preferences and behavior.")
 
 engine = PersonaEngine()
@@ -152,4 +152,4 @@ else:
     st.info("👈 Upload your `cleaned_unique_customers.csv` to begin.")
 
 st.markdown("---")
-st.markdown("© 2025 Dorenth | Made using Python \ud83d\udc0d\")
+st.markdown("© 2025 Dorenth | Made using Python 🐍", unsafe_allow_html=True")
