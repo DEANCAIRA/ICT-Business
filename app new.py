@@ -23,7 +23,7 @@ class PersonaEngine:
         # Updated persona definitions as per your request
         self.definitions = {
             "Fashion Devotee": {
-                "emoji": "�",
+                "emoji": "👗",
                 "criteria": ["fashion_lover"],
                 "description": "Passionate about the latest fashion trends, with a keen interest in unique and stylish apparel.",
                 "tags": ["fashion", "style", "apparel"],
@@ -37,7 +37,7 @@ class PersonaEngine:
                 "product_recommendations": ["Advanced Skincare Serum", "Luxury Foundation", "Artisan Makeup Brushes", "LED Therapy Mask", "Beauty Box Subscription"]
             },
             "Japanese Lover": {
-                "emoji": "🇯🇵",
+                "emoji": "�🇵",
                 "criteria": ["japan_lover"],
                 "description": "Deeply interested in Japanese pop culture, including anime, manga, music, and snacks.",
                 "tags": ["anime", "manga", "j-pop", "snacks", "japan"],
@@ -248,5 +248,6 @@ if file:
 
 # Footer
 st.markdown("---")
-st.markdown("© 2025 Dorenth | Made with Python & Streamlit 🐍", unsafe_allow_html=True)
+# Removed special characters to prevent encoding errors.
+st.markdown("(c) 2025 Dorenth | Made with Python & Streamlit", unsafe_allow_html=True)
 �
