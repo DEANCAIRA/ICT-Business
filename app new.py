@@ -10,36 +10,54 @@ class PersonaEngine:
         self.df = None
         self.personas = []
 
+        # Define keyword→weight mappings
+        self.weights = {
+            "Fashion Devotee": {
+                "fashion shows": 2,
+                "fashion show": 2,
+                "designer collections": 1,
+                "designer": 1,
+            },
+            "Beauty Maven": {
+                "beauty": 2,
+                "personal care": 1,
+                "skincare": 1,
+                "tgc": 1,
+            },
+            "Japanese Lover": {
+                "japanese fashion and culture": 2,
+                "japanese": 1,
+                "anime": 1,
+                "live performance": 1,
+                "kol": 1,
+            }
+        }
+
     def load_data(self, file):
         self.df = pd.read_csv(file)
         self.df.columns = self.df.columns.str.strip().str.lower()
         return not self.df.empty
 
-    def assign_persona(self, interest, product_category):
-        interest = str(interest).lower()
-        category = str(product_category).lower()
+    def assign_persona(self, interest: str, product_category: str):
+        text = (str(interest) + " " + str(product_category)).lower()
+        scores = {p: 0 for p in self.weights}
 
-        # Define keyword sets
-        fashion_keywords = ["fashion show", "fashion shows", "designer", "designer collections"]
-        beauty_keywords = ["beauty", "personal care", "skincare", "tgc"]
-        japanese_keywords = ["japanese fashion and culture", "live performance", "japanese", "anime", "kol"]
+        # accumulate weights for each persona
+        for persona, kws in self.weights.items():
+            for kw, w in kws.items():
+                if kw in text:
+                    scores[persona] += w
 
-        # Prioritized persona assignment
-        if any(k in interest for k in fashion_keywords):
-            return "Fashion Devotee"
-        elif any(k in category for k in beauty_keywords) or any(k in interest for k in beauty_keywords):
-            return "Beauty Maven"
-        elif any(k in interest for k in japanese_keywords):
-            return "Japanese Lover"
-        else:
-            return "Unclassified"
+        # pick highest score
+        best = max(scores, key=lambda p: scores[p])
+        return best if scores[best] > 0 else "Unclassified"
 
     def process(self):
         self.personas = []
         for _, row in self.df.iterrows():
             interest = row.get("interest", "")
             product_category = row.get("product category", "")
-            concerts_attended = row.get("concerts attended", "")
+            concerts = row.get("concerts attended", "")
 
             persona = self.assign_persona(interest, product_category)
 
@@ -49,12 +67,12 @@ class PersonaEngine:
                 "city": row.get("city", ""),
                 "interest": interest,
                 "product_interest": product_category,
-                "concerts_attended": concerts_attended,
+                "concerts_attended": concerts,
                 "persona": persona,
                 "emoji": self.get_emoji(persona)
             })
 
-    def get_emoji(self, persona):
+    def get_emoji(self, persona: str) -> str:
         return {
             "Fashion Devotee": "👗",
             "Beauty Maven": "💄",
@@ -62,15 +80,14 @@ class PersonaEngine:
             "Unclassified": "❓"
         }.get(persona, "❓")
 
-    def to_df(self):
+    def to_df(self) -> pd.DataFrame:
         return pd.DataFrame(self.personas)
 
-    def get_stats(self):
-        return Counter([p["persona"] for p in self.personas])
+    def get_stats(self) -> Counter:
+        return Counter(p["persona"] for p in self.personas)
 
-    def get_city_stats(self):
-        df = self.to_df()
-        return df['city'].value_counts()
+    def get_city_stats(self) -> pd.Series:
+        return self.to_df()["city"].value_counts()
 
     def grouped_by_persona(self):
         return self.to_df().groupby("persona")
@@ -78,10 +95,10 @@ class PersonaEngine:
 
 # --- Streamlit UI ---
 st.title("🎯 Customer Persona Profiler")
-st.markdown("Upload your customer CSV to generate exclusive personas based on preferences.")
+st.markdown("Upload your customer CSV to generate exclusive personas using weighted keyword scoring.")
 
 engine = PersonaEngine()
-file = st.file_uploader("📤 Upload your `cleaned_unique_customers.csv`", type="csv")
+file = st.file_uploader("📤 Upload `cleaned_unique_customers.csv`", type="csv")
 
 if file:
     if engine.load_data(file):
@@ -106,27 +123,29 @@ if file:
 
             with col2:
                 st.subheader("City Distribution")
-                top_cities = city_counts[city_counts > (city_counts.sum() * 0.02)]
-                others = city_counts[city_counts <= (city_counts.sum() * 0.02)]
+                top = city_counts[city_counts > city_counts.sum() * 0.02]
+                rest = city_counts[city_counts <= city_counts.sum() * 0.02]
                 city_df = pd.DataFrame({
-                    "City": list(top_cities.index) + ["Others"],
-                    "Count": list(top_cities.values) + [others.sum()]
+                    "City": list(top.index) + ["Others"],
+                    "Count": list(top.values) + [rest.sum()]
                 })
-                fig_city = px.pie(city_df, names='City', values='Count', title="Customer City")
+                fig_city = px.pie(city_df, names="City", values="Count", title="Customers by City")
                 st.plotly_chart(fig_city, use_container_width=True)
 
         with tab2:
             st.subheader("👥 Detailed Persona List")
-            grouped = engine.grouped_by_persona()
-            for persona, group in grouped:
+            for persona, group in engine.grouped_by_persona():
                 st.subheader(f"{group.iloc[0]['emoji']} {persona} ({len(group)} customers)")
-                st.dataframe(group[[
-                    'email', 'phone', 'city', 'interest', 'product_interest', 'concerts_attended'
-                ]].reset_index(drop=True))
+                st.dataframe(
+                    group[[
+                        "email", "phone", "city",
+                        "interest", "product_interest", "concerts_attended"
+                    ]].reset_index(drop=True)
+                )
     else:
-        st.error("❌ Could not read file. Please check format.")
+        st.error("❌ Failed to read the uploaded CSV. Check its format.")
 else:
-    st.info("👈 Upload your `cleaned_unique_customers.csv` to begin.")
+    st.info("👈 Please upload `cleaned_unique_customers.csv` to begin.")
 
 st.markdown("---")
 st.markdown("© 2025 Dorenth | Made using Python 🐍", unsafe_allow_html=True)
