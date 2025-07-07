@@ -17,7 +17,7 @@ class PersonaEngine:
                 "fashion show": 2,
                 "designer collections": 1,
                 "designer": 1,
-                "fashion": 1,  # NEW: captures 'fashion and lifestyle'
+                "fashion": 1,  # catch generic cases
             },
             "Beauty Maven": {
                 "beauty": 2,
@@ -30,7 +30,6 @@ class PersonaEngine:
                 "japanese": 1,
                 "anime": 1,
                 "kol": 1
-                # live performance handled below
             }
         }
 
@@ -39,7 +38,7 @@ class PersonaEngine:
         self.df.columns = self.df.columns.str.strip().str.lower()
         return not self.df.empty
 
-    def assign_persona(self, interest: str, product_category: str):
+    def assign_persona_with_scores(self, interest: str, product_category: str):
         combined_text = f"{interest} {product_category}".lower()
         text = re.sub(r'[^a-zA-Z0-9\s]', ' ', combined_text)
         text = re.sub(r'\s+', ' ', text).strip()
@@ -55,7 +54,20 @@ class PersonaEngine:
             scores["Japanese Lover"] += 1
 
         best = max(scores, key=lambda p: scores[p])
-        return best if scores[best] > 0 else "Unclassified"
+        final_persona = best if scores[best] > 0 else "Unclassified"
+
+        return final_persona, scores
+
+    def make_tooltip(self, primary, scores):
+        emoji = {
+            "Fashion Devotee": "👗",
+            "Beauty Maven": "💄",
+            "Japanese Lover": "🎌",
+            "Unclassified": "❓"
+        }.get(primary, "❓")
+
+        tooltip = "\n".join([f"{p}: {s}" for p, s in scores.items()])
+        return f'<span title="{tooltip}">{emoji} {primary}</span>'
 
     def process(self):
         self.personas = []
@@ -64,7 +76,8 @@ class PersonaEngine:
             product_category = row.get("product category", "")
             concerts = row.get("concerts attended", "")
 
-            persona = self.assign_persona(interest, product_category)
+            persona, scores = self.assign_persona_with_scores(interest, product_category)
+            tooltip = self.make_tooltip(persona, scores)
 
             self.personas.append({
                 "email": row.get("email", ""),
@@ -74,16 +87,8 @@ class PersonaEngine:
                 "product_interest": product_category,
                 "concerts_attended": concerts,
                 "persona": persona,
-                "emoji": self.get_emoji(persona)
+                "tooltip": tooltip
             })
-
-    def get_emoji(self, persona):
-        return {
-            "Fashion Devotee": "👗",
-            "Beauty Maven": "💄",
-            "Japanese Lover": "🎌",
-            "Unclassified": "❓"
-        }.get(persona, "❓")
 
     def to_df(self):
         return pd.DataFrame(self.personas)
@@ -99,8 +104,8 @@ class PersonaEngine:
 
 
 # --- Streamlit UI ---
-st.title("Customer Persona Profiler")
-st.markdown("Upload your customer CSV to generate personas using smart keyword scoring.")
+st.title("🎯 Customer Persona Profiler")
+st.markdown("Upload a CSV to generate exclusive personas with hoverable score tooltips.")
 
 engine = PersonaEngine()
 file = st.file_uploader("📤 Upload your `cleaned_unique_customers.csv`", type="csv")
@@ -138,19 +143,17 @@ if file:
                 st.plotly_chart(fig_city, use_container_width=True)
 
         with tab2:
-            st.subheader("👥 Detailed Persona List")
+            st.subheader("👥 Detailed Persona Table with Tooltip")
             for persona, group in engine.grouped_by_persona():
-                st.subheader(f"{group.iloc[0]['emoji']} {persona} ({len(group)} customers)")
-                st.dataframe(
-                    group[[
-                        "email", "phone", "city",
-                        "interest", "product_interest", "concerts_attended"
-                    ]].reset_index(drop=True)
-                )
+                st.markdown(f"### {persona} ({len(group)} customers)")
+                group_html = group[[
+                    "email", "phone", "city", "interest", "product_interest", "concerts_attended", "tooltip"
+                ]].rename(columns={"tooltip": "Persona (hover for details)"}).to_html(escape=False, index=False)
+                st.markdown(group_html, unsafe_allow_html=True)
     else:
-        st.error("❌ Failed to read the uploaded CSV. Check its format.")
+        st.error("❌ Failed to read CSV. Please check formatting.")
 else:
-    st.info("👈 Please upload `cleaned_unique_customers.csv` to begin.")
+    st.info("👈 Upload your `cleaned_unique_customers.csv` to begin.")
 
 st.markdown("---")
 st.markdown("© 2025 Dorenth | Made using Python 🐍", unsafe_allow_html=True)
