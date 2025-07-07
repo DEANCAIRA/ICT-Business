@@ -10,7 +10,7 @@ class PersonaEngine:
         self.df = None
         self.personas = []
 
-        # Define keyword→weight mappings
+        # Base keyword weights (without live performance)
         self.weights = {
             "Fashion Devotee": {
                 "fashion shows": 2,
@@ -28,8 +28,8 @@ class PersonaEngine:
                 "japanese fashion and culture": 2,
                 "japanese": 1,
                 "anime": 1,
-                "live performance": 1,
-                "kol": 1,
+                "kol": 1
+                # intentionally omit 'live performance' from static list
             }
         }
 
@@ -42,13 +42,17 @@ class PersonaEngine:
         text = (str(interest) + " " + str(product_category)).lower()
         scores = {p: 0 for p in self.weights}
 
-        # accumulate weights for each persona
+        # Apply standard weighted keyword scoring
         for persona, kws in self.weights.items():
             for kw, w in kws.items():
                 if kw in text:
                     scores[persona] += w
 
-        # pick highest score
+        # Special case: count 'live performance' only if Japanese context is present
+        if "live performance" in text and ("japanese" in text or "kol" in text):
+            scores["Japanese Lover"] += 1
+
+        # Determine winner
         best = max(scores, key=lambda p: scores[p])
         return best if scores[best] > 0 else "Unclassified"
 
