@@ -15,44 +15,24 @@ class PersonaEngine:
         self.df.columns = self.df.columns.str.strip().str.lower()
         return not self.df.empty
 
-    def assign_persona(self, interest, product_category, concerts_attended):
+    def assign_persona(self, interest, product_category):
         interest = str(interest).lower()
         category = str(product_category).lower()
-        concerts = str(concerts_attended).lower()
-        tags = []
 
-        # Default
-        persona = "Unclassified"
-        sub = "-"
+        # Define keyword sets
+        fashion_keywords = ["fashion show", "fashion shows", "designer", "designer collections"]
+        beauty_keywords = ["beauty", "personal care", "skincare", "tgc"]
+        japanese_keywords = ["japanese fashion and culture", "live performance", "japanese", "anime", "kol"]
 
-        # --- Fashion Devotee ---
-        if "fashion show" in interest or "designer" in interest:
-            persona = "Fashion Devotee"
-            if "japanese fashion" in interest:
-                sub = "Harajuku Dreamer"
-            elif "more" in concerts or "2 to 3" in concerts:
-                sub = "Event-Goer"
-            else:
-                sub = "Style Seeker"
-
-        # --- Beauty Maven ---
-        elif "beauty" in category or "personal care" in category or "tgc" in interest:
-            persona = "Beauty Maven"
-            if "tgc" in interest and ("2 to 3" in concerts or "more" in concerts):
-                sub = "Beauty Event Enthusiast"
-            else:
-                sub = "Voucher Hunter" if "tgc" in interest else "Beauty Enthusiast"
-
-        # --- Japanese Lover ---
-        elif "japanese fashion and culture" in interest or "live performance" in interest:
-            persona = "Japanese Lover"
-            if "live" in interest or "kol" in interest:
-                sub = "Pop Culture Fan"
-            if "2 to 3" in concerts or "more" in concerts:
-                sub = "Live Culture Fan"
-
-        tags.append(sub)
-        return persona, sub, tags
+        # Prioritized persona assignment
+        if any(k in interest for k in fashion_keywords):
+            return "Fashion Devotee"
+        elif any(k in category for k in beauty_keywords) or any(k in interest for k in beauty_keywords):
+            return "Beauty Maven"
+        elif any(k in interest for k in japanese_keywords):
+            return "Japanese Lover"
+        else:
+            return "Unclassified"
 
     def process(self):
         self.personas = []
@@ -61,7 +41,7 @@ class PersonaEngine:
             product_category = row.get("product category", "")
             concerts_attended = row.get("concerts attended", "")
 
-            persona, sub_persona, tags = self.assign_persona(interest, product_category, concerts_attended)
+            persona = self.assign_persona(interest, product_category)
 
             self.personas.append({
                 "email": row.get("email", ""),
@@ -71,8 +51,6 @@ class PersonaEngine:
                 "product_interest": product_category,
                 "concerts_attended": concerts_attended,
                 "persona": persona,
-                "sub_persona": sub_persona,
-                "tags": tags,
                 "emoji": self.get_emoji(persona)
             })
 
@@ -99,8 +77,8 @@ class PersonaEngine:
 
 
 # --- Streamlit UI ---
-st.title("Customer Persona Profiler")
-st.markdown("Upload your customer CSV to generate personas based on preferences and behavior.")
+st.title("🎯 Customer Persona Profiler")
+st.markdown("Upload your customer CSV to generate exclusive personas based on preferences.")
 
 engine = PersonaEngine()
 file = st.file_uploader("📤 Upload your `cleaned_unique_customers.csv`", type="csv")
@@ -142,9 +120,8 @@ if file:
             grouped = engine.grouped_by_persona()
             for persona, group in grouped:
                 st.subheader(f"{group.iloc[0]['emoji']} {persona} ({len(group)} customers)")
-                st.write(f"Sub-Personas: {group['sub_persona'].unique().tolist()}")
                 st.dataframe(group[[
-                    'email', 'phone', 'city', 'interest', 'product_interest', 'concerts_attended', 'sub_persona'
+                    'email', 'phone', 'city', 'interest', 'product_interest', 'concerts_attended'
                 ]].reset_index(drop=True))
     else:
         st.error("❌ Could not read file. Please check format.")
@@ -153,4 +130,3 @@ else:
 
 st.markdown("---")
 st.markdown("© 2025 Dorenth | Made using Python 🐍", unsafe_allow_html=True)
-
