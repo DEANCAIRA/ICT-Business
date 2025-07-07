@@ -17,6 +17,7 @@ class PersonaEngine:
                 "fashion show": 2,
                 "designer collections": 1,
                 "designer": 1,
+                "fashion": 1,  # NEW: captures 'fashion and lifestyle'
             },
             "Beauty Maven": {
                 "beauty": 2,
@@ -29,7 +30,7 @@ class PersonaEngine:
                 "japanese": 1,
                 "anime": 1,
                 "kol": 1
-                # live performance handled separately
+                # live performance handled below
             }
         }
 
@@ -39,7 +40,6 @@ class PersonaEngine:
         return not self.df.empty
 
     def assign_persona(self, interest: str, product_category: str):
-        # Normalize input text
         combined_text = f"{interest} {product_category}".lower()
         text = re.sub(r'[^a-zA-Z0-9\s]', ' ', combined_text)
         text = re.sub(r'\s+', ' ', text).strip()
@@ -51,7 +51,6 @@ class PersonaEngine:
                 if kw in text:
                     scores[persona] += weight
 
-        # Special case for live performance under Japanese context
         if "live performance" in text and ("japanese" in text or "kol" in text):
             scores["Japanese Lover"] += 1
 
@@ -101,7 +100,7 @@ class PersonaEngine:
 
 # --- Streamlit UI ---
 st.title("🎯 Customer Persona Profiler")
-st.markdown("Upload your customer CSV to generate personas using weighted keyword matching with proper text normalization.")
+st.markdown("Upload your customer CSV to generate personas using smart keyword scoring.")
 
 engine = PersonaEngine()
 file = st.file_uploader("📤 Upload your `cleaned_unique_customers.csv`", type="csv")
