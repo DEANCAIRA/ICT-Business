@@ -17,7 +17,7 @@ class PersonaEngine:
                 "fashion show": 2,
                 "designer collections": 1,
                 "designer": 1,
-                "fashion": 1,  # catch generic cases
+                "fashion": 1,
             },
             "Beauty Maven": {
                 "beauty": 2,
@@ -44,7 +44,6 @@ class PersonaEngine:
         text = re.sub(r'\s+', ' ', text).strip()
 
         scores = {p: 0 for p in self.weights}
-
         for persona, keywords in self.weights.items():
             for kw, weight in keywords.items():
                 if kw in text:
@@ -105,7 +104,7 @@ class PersonaEngine:
 
 # --- Streamlit UI ---
 st.title("🎯 Customer Persona Profiler")
-st.markdown("Upload a CSV to generate exclusive personas with hoverable score tooltips.")
+st.markdown("Upload a CSV to generate exclusive personas. Hover over persona labels for score details.")
 
 engine = PersonaEngine()
 file = st.file_uploader("📤 Upload your `cleaned_unique_customers.csv`", type="csv")
@@ -143,15 +142,23 @@ if file:
                 st.plotly_chart(fig_city, use_container_width=True)
 
         with tab2:
-            st.subheader("👥 Detailed Persona Table with Tooltip")
+            st.subheader("👥 Detailed Persona Table (hover for score breakdown)")
             for persona, group in engine.grouped_by_persona():
                 st.markdown(f"### {persona} ({len(group)} customers)")
-                group_html = group[[
-                    "email", "phone", "city", "interest", "product_interest", "concerts_attended", "tooltip"
-                ]].rename(columns={"tooltip": "Persona (hover for details)"}).to_html(escape=False, index=False)
-                st.markdown(group_html, unsafe_allow_html=True)
+                for _, row in group.iterrows():
+                    with st.expander(f"{row['email']}"):
+                        cols = st.columns(2)
+                        with cols[0]:
+                            st.markdown(f"**Phone:** {row['phone']}")
+                            st.markdown(f"**City:** {row['city']}")
+                            st.markdown(f"**Interest:** {row['interest']}")
+                            st.markdown(f"**Product Interest:** {row['product_interest']}")
+                            st.markdown(f"**Concerts Attended:** {row['concerts_attended']}")
+                        with cols[1]:
+                            st.markdown(f"**Persona:** {row['tooltip']}", unsafe_allow_html=True)
+
     else:
-        st.error("❌ Failed to read CSV. Please check formatting.")
+        st.error("❌ Could not read CSV. Please check formatting.")
 else:
     st.info("👈 Upload your `cleaned_unique_customers.csv` to begin.")
 
