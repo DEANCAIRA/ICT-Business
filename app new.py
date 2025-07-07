@@ -55,7 +55,7 @@ class PersonaEngine:
                 "phone": row.get("phone", ""),
                 "city": row.get("city", ""),
                 "interest": interest,
-                "product_category": product_category,
+                "product_interest": product_category,  # renamed for UI
                 "persona": persona,
                 "sub_persona": sub_persona,
                 "tags": tags,
@@ -127,13 +127,4 @@ if file:
             st.subheader("👥 Detailed Persona List")
             grouped = engine.grouped_by_persona()
             for persona, group in grouped:
-                st.subheader(f"{group.iloc[0]['emoji']} {persona} ({len(group)} customers)")
-                st.write(f"Sub-Personas: {group['sub_persona'].unique().tolist()}")
-                st.dataframe(group[['email', 'phone', 'city', 'interest', 'product_category', 'sub_persona']].reset_index(drop=True))
-    else:
-        st.error("❌ Could not read file. Please check format.")
-else:
-    st.info("👈 Upload your `cleaned_unique_customers.csv` to begin.")
-
-st.markdown("---")
-st.markdown("© 2025 Dorenth | Powered by Python 🐍")
+                st.subheader(f"{group.iloc[0]
