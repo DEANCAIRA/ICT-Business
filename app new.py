@@ -102,7 +102,7 @@ class PersonaEngine:
 
 
 # --- Streamlit UI ---
-st.title("🎯 Customer Persona Profiler")
+st.title("Customer Persona Profiler")
 st.markdown("Upload a CSV to classify customers. Scores are displayed for transparency.")
 
 engine = PersonaEngine()
