@@ -15,31 +15,42 @@ class PersonaEngine:
         self.df.columns = self.df.columns.str.strip().str.lower()
         return not self.df.empty
 
-    def assign_persona(self, interest, product_category):
+    def assign_persona(self, interest, product_category, concerts_attended):
         interest = str(interest).lower()
         category = str(product_category).lower()
+        concerts = str(concerts_attended).lower()
         tags = []
 
-        # --- Persona Assignment ---
+        # Default
+        persona = "Unclassified"
+        sub = "-"
+
+        # --- Fashion Devotee ---
         if "fashion show" in interest or "designer" in interest:
             persona = "Fashion Devotee"
             if "japanese fashion" in interest:
                 sub = "Harajuku Dreamer"
+            elif "more" in concerts or "2 to 3" in concerts:
+                sub = "Event-Goer"
             else:
                 sub = "Style Seeker"
+
+        # --- Beauty Maven ---
         elif "beauty" in category or "personal care" in category or "tgc" in interest:
             persona = "Beauty Maven"
-            sub = "Voucher Hunter" if "tgc" in interest else "Beauty Enthusiast"
+            if "tgc" in interest and ("2 to 3" in concerts or "more" in concerts):
+                sub = "Beauty Event Enthusiast"
+            else:
+                sub = "Voucher Hunter" if "tgc" in interest else "Beauty Enthusiast"
+
+        # --- Japanese Lover ---
         elif "japanese fashion and culture" in interest or "live performance" in interest:
             persona = "Japanese Lover"
             if "live" in interest or "kol" in interest:
                 sub = "Pop Culture Fan"
-            else:
-                sub = "Cultural Enthusiast"
-        else:
-            persona = "Unclassified"
-            sub = "-"
-        
+            if "2 to 3" in concerts or "more" in concerts:
+                sub = "Live Culture Fan"
+
         tags.append(sub)
         return persona, sub, tags
 
@@ -48,14 +59,17 @@ class PersonaEngine:
         for _, row in self.df.iterrows():
             interest = row.get("interest", "")
             product_category = row.get("product category", "")
-            persona, sub_persona, tags = self.assign_persona(interest, product_category)
+            concerts_attended = row.get("concerts attended", "")
+
+            persona, sub_persona, tags = self.assign_persona(interest, product_category, concerts_attended)
 
             self.personas.append({
                 "email": row.get("email", ""),
                 "phone": row.get("phone", ""),
                 "city": row.get("city", ""),
                 "interest": interest,
-                "product_interest": product_category,  # renamed for UI
+                "product_interest": product_category,
+                "concerts_attended": concerts_attended,
                 "persona": persona,
                 "sub_persona": sub_persona,
                 "tags": tags,
@@ -85,11 +99,11 @@ class PersonaEngine:
 
 
 # --- Streamlit UI ---
-st.title("Customer Persona Profiler")
-st.markdown("Upload a CSV to generate personas based on preferences and interests.")
+st.title("🎯 Customer Persona Profiler")
+st.markdown("Upload your customer CSV to generate personas based on preferences and behavior.")
 
 engine = PersonaEngine()
-file = st.file_uploader("📤 Upload CSV", type="csv")
+file = st.file_uploader("📤 Upload your `cleaned_unique_customers.csv`", type="csv")
 
 if file:
     if engine.load_data(file):
@@ -106,8 +120,8 @@ if file:
             with col1:
                 st.subheader("Persona Distribution")
                 fig_pie = px.pie(
-                    names=list(stats.keys()), 
-                    values=list(stats.values()), 
+                    names=list(stats.keys()),
+                    values=list(stats.values()),
                     title="Persona Breakdown"
                 )
                 st.plotly_chart(fig_pie, use_container_width=True)
@@ -130,7 +144,7 @@ if file:
                 st.subheader(f"{group.iloc[0]['emoji']} {persona} ({len(group)} customers)")
                 st.write(f"Sub-Personas: {group['sub_persona'].unique().tolist()}")
                 st.dataframe(group[[
-                    'email', 'phone', 'city', 'interest', 'product_interest', 'sub_persona'
+                    'email', 'phone', 'city', 'interest', 'product_interest', 'concerts_attended', 'sub_persona'
                 ]].reset_index(drop=True))
     else:
         st.error("❌ Could not read file. Please check format.")
@@ -138,4 +152,4 @@ else:
     st.info("👈 Upload your `cleaned_unique_customers.csv` to begin.")
 
 st.markdown("---")
-st.markdown("© 2025 Dorenth | Powered by Python 🐍")
+st.markdown("© 2025 Dorenth | Built with ❤️ using Streamlit")
