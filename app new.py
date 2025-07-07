@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import re
 from collections import Counter
 import plotly.express as px
 
@@ -10,7 +11,6 @@ class PersonaEngine:
         self.df = None
         self.personas = []
 
-        # Base keyword weights (without live performance)
         self.weights = {
             "Fashion Devotee": {
                 "fashion shows": 2,
@@ -29,7 +29,7 @@ class PersonaEngine:
                 "japanese": 1,
                 "anime": 1,
                 "kol": 1
-                # intentionally omit 'live performance' from static list
+                # 'live performance' excluded from static list
             }
         }
 
@@ -39,20 +39,24 @@ class PersonaEngine:
         return not self.df.empty
 
     def assign_persona(self, interest: str, product_category: str):
-        text = (str(interest) + " " + str(product_category)).lower()
+        combined_text = f"{interest} {product_category}".lower()
+        # Normalize: remove punctuation, unify spaces
+        text = re.sub(r'[^a-zA-Z0-9\s]', ' ', combined_text)
+        text = re.sub(r'\s+', ' ', text).strip()
+
         scores = {p: 0 for p in self.weights}
 
-        # Apply standard weighted keyword scoring
-        for persona, kws in self.weights.items():
-            for kw, w in kws.items():
+        # Score based on static keyword weights
+        for persona, keywords in self.weights.items():
+            for kw, weight in keywords.items():
                 if kw in text:
-                    scores[persona] += w
+                    scores[persona] += weight
 
-        # Special case: count 'live performance' only if Japanese context is present
+        # Special: live performance only counts for Japanese Lover with context
         if "live performance" in text and ("japanese" in text or "kol" in text):
             scores["Japanese Lover"] += 1
 
-        # Determine winner
+        # Pick persona with highest score
         best = max(scores, key=lambda p: scores[p])
         return best if scores[best] > 0 else "Unclassified"
 
@@ -76,7 +80,7 @@ class PersonaEngine:
                 "emoji": self.get_emoji(persona)
             })
 
-    def get_emoji(self, persona: str) -> str:
+    def get_emoji(self, persona):
         return {
             "Fashion Devotee": "👗",
             "Beauty Maven": "💄",
@@ -84,13 +88,13 @@ class PersonaEngine:
             "Unclassified": "❓"
         }.get(persona, "❓")
 
-    def to_df(self) -> pd.DataFrame:
+    def to_df(self):
         return pd.DataFrame(self.personas)
 
-    def get_stats(self) -> Counter:
+    def get_stats(self):
         return Counter(p["persona"] for p in self.personas)
 
-    def get_city_stats(self) -> pd.Series:
+    def get_city_stats(self):
         return self.to_df()["city"].value_counts()
 
     def grouped_by_persona(self):
@@ -99,10 +103,10 @@ class PersonaEngine:
 
 # --- Streamlit UI ---
 st.title("🎯 Customer Persona Profiler")
-st.markdown("Upload your customer CSV to generate exclusive personas using weighted keyword scoring.")
+st.markdown("Upload your customer CSV to generate personas using smart weighted keyword logic.")
 
 engine = PersonaEngine()
-file = st.file_uploader("📤 Upload `cleaned_unique_customers.csv`", type="csv")
+file = st.file_uploader("📤 Upload your `cleaned_unique_customers.csv`", type="csv")
 
 if file:
     if engine.load_data(file):
@@ -147,7 +151,7 @@ if file:
                     ]].reset_index(drop=True)
                 )
     else:
-        st.error("❌ Failed to read the uploaded CSV. Check its format.")
+        st.error("❌ Could not read the uploaded CSV. Check its format.")
 else:
     st.info("👈 Please upload `cleaned_unique_customers.csv` to begin.")
 
