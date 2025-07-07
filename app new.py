@@ -23,7 +23,7 @@ class PersonaEngine:
         # Updated persona definitions as per your request
         self.definitions = {
             "Fashion Devotee": {
-                "emoji": "👗",
+                "emoji": "�",
                 "criteria": ["fashion_lover"],
                 "description": "Passionate about the latest fashion trends, with a keen interest in unique and stylish apparel.",
                 "tags": ["fashion", "style", "apparel"],
@@ -63,28 +63,31 @@ class PersonaEngine:
     def extract_tags(self, row):
         """
         Extracts relevant tags from a single row of customer data.
-        This function now looks for keywords in all columns to assign a persona tag.
-        This makes the logic flexible to different CSV structures.
+        This function now specifically looks for keywords in preference-based columns 
+        (like 'interests' and 'product_category') to ensure more accurate persona assignment.
         """
         tags = set()
         
-        # Combine all text data in the row into a single string for easy searching
-        # We convert everything to string and lower case to make matching reliable
-        row_text = ' '.join(str(v).lower() for v in row.values)
+        # --- More Accurate Persona Assignment ---
+        # Define columns that indicate customer preference from your questionnaire
+        preference_columns = ['interests', 'product_category']
+        
+        # Build a single string from preference columns only
+        preference_text = ' '.join(str(row.get(col, '')).lower() for col in preference_columns)
 
         # Keywords for each persona
         fashion_keywords = ['fashion', 'style', 'apparel', 'clothing', 'outfit', 'brand']
         beauty_keywords = ['beauty', 'skincare', 'cosmetics', 'makeup', 'routine', 'serum', 'lipstick']
         japan_keywords = ['japan', 'anime', 'manga', 'j-pop', 'sushi', 'ramen', 'kawaii', 'tokyo', 'snack']
 
-        # Check for keywords and add the main persona tag
-        if any(keyword in row_text for keyword in fashion_keywords):
+        # Check for keywords within the specific preference text
+        if any(keyword in preference_text for keyword in fashion_keywords):
             tags.add("fashion_lover")
         
-        if any(keyword in row_text for keyword in beauty_keywords):
+        if any(keyword in preference_text for keyword in beauty_keywords):
             tags.add("beauty_lover")
             
-        if any(keyword in row_text for keyword in japan_keywords):
+        if any(keyword in preference_text for keyword in japan_keywords):
             tags.add("japan_lover")
             
         return tags
@@ -96,7 +99,6 @@ class PersonaEngine:
         If a customer matches multiple personas, it will be assigned to the first one it matches based on the definition order.
         """
         # This simple approach assigns the first persona that matches.
-        # For more complex scenarios, a scoring system could be used.
         for name, config in self.definitions.items():
             if any(c in tags for c in config['criteria']):
                 return name
@@ -124,12 +126,14 @@ class PersonaEngine:
                     "product_recommendations": ["General Store Voucher"],
                     "tags": []
                 }
-
+            
+            # --- Improved Demographic Data Extraction ---
+            # Added more fallbacks to find the correct columns for demographic data.
             entry = {
-                # Try to find a customer identifier, otherwise use index
                 "customer_id": row.get("customer_id", row.get("customer_unique_id", _)),
-                "city": row.get("customer_city", row.get("city_of_residence", "Unknown")),
-                "zip": row.get("customer_zip_code_prefix", "-"),
+                "city": row.get("city", row.get("customer_city", row.get("city_of_residence", "Unknown"))),
+                "age": row.get("age", "N/A"),
+                "email": row.get("email", "N/A"),
                 "phone": row.get("phone number", row.get("whatsapp_number", "N/A")),
                 "persona": persona_name,
                 "emoji": persona_info.get("emoji"),
@@ -195,7 +199,6 @@ if file:
             with col1:
                 st.subheader("👥 Persona Distribution")
                 if stats:
-                    # Filter out 'Unclassified' for a cleaner pie chart of defined personas
                     filtered_stats = {k: v for k, v in stats.items() if k != "Unclassified"}
                     if filtered_stats:
                         fig_persona = px.pie(
@@ -224,7 +227,6 @@ if file:
             
             grouped = engine.grouped_by_persona()
             if grouped:
-                # Use the defined order for personas
                 persona_order = list(engine.definitions.keys()) + ["Unclassified"]
                 for persona_name in persona_order:
                     if persona_name in grouped.groups:
@@ -233,9 +235,9 @@ if file:
                         st.write(f"**Description:** {group.iloc[0]['description']}")
                         st.write(f"**Recommended Products:** {', '.join(group.iloc[0]['product_recommendations'])}")
                         
-                        # Display relevant columns for the persona group
-                        display_cols = ['customer_id', 'city', 'tags']
-                        # Ensure columns exist before trying to display them
+                        # --- Enhanced Details View ---
+                        # Displaying more demographic info to verify data capture.
+                        display_cols = ['customer_id', 'city', 'age', 'email', 'phone', 'tags']
                         cols_to_show = [col for col in display_cols if col in group.columns]
                         st.dataframe(group[cols_to_show].reset_index(drop=True))
             else:
@@ -247,3 +249,4 @@ if file:
 # Footer
 st.markdown("---")
 st.markdown("© 2025 Dorenth | Made with Python & Streamlit 🐍", unsafe_allow_html=True)
+�
