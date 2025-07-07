@@ -101,30 +101,34 @@ if file:
         tab1, tab2 = st.tabs(["📊 Overview", "👥 Persona Details"])
 
         with tab1:
-            st.subheader("Persona Distribution")
-            fig_pie = px.pie(
-                names=list(stats.keys()), 
-                values=list(stats.values()), 
-                title="Persona Breakdown"
-            )
-            st.plotly_chart(fig_pie, use_container_width=True)
+            col1, col2 = st.columns(2)
 
-            st.subheader("City Distribution")
-            top_cities = city_counts[city_counts > (city_counts.sum() * 0.02)]
-            others = city_counts[city_counts <= (city_counts.sum() * 0.02)]
-            city_df = pd.DataFrame({
-                "City": list(top_cities.index) + ["Others"],
-                "Count": list(top_cities.values) + [others.sum()]
-            })
-            fig_city = px.pie(city_df, names='City', values='Count', title="Customer City")
-            st.plotly_chart(fig_city, use_container_width=True)
+            with col1:
+                st.subheader("Persona Distribution")
+                fig_pie = px.pie(
+                    names=list(stats.keys()), 
+                    values=list(stats.values()), 
+                    title="Persona Breakdown"
+                )
+                st.plotly_chart(fig_pie, use_container_width=True)
+
+            with col2:
+                st.subheader("City Distribution")
+                top_cities = city_counts[city_counts > (city_counts.sum() * 0.02)]
+                others = city_counts[city_counts <= (city_counts.sum() * 0.02)]
+                city_df = pd.DataFrame({
+                    "City": list(top_cities.index) + ["Others"],
+                    "Count": list(top_cities.values) + [others.sum()]
+                })
+                fig_city = px.pie(city_df, names='City', values='Count', title="Customer City")
+                st.plotly_chart(fig_city, use_container_width=True)
 
         with tab2:
             st.subheader("👥 Detailed Persona List")
             grouped = engine.grouped_by_persona()
             for persona, group in grouped:
                 st.subheader(f"{group.iloc[0]['emoji']} {persona} ({len(group)} customers)")
-                st.write(f"Sub-Persona Example: {group['sub_persona'].unique().tolist()}")
+                st.write(f"Sub-Personas: {group['sub_persona'].unique().tolist()}")
                 st.dataframe(group[['email', 'phone', 'city', 'interest', 'product_category', 'sub_persona']].reset_index(drop=True))
     else:
         st.error("❌ Could not read file. Please check format.")
