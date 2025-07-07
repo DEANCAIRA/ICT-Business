@@ -3,60 +3,72 @@ import pandas as pd
 from collections import Counter
 import plotly.express as px
 
-st.set_page_config(page_title="Customer Persona Generator", layout="wide")
+st.set_page_config(page_title="Customer Persona Profiler", layout="wide")
 
 class PersonaEngine:
     def __init__(self):
         self.df = None
         self.personas = []
 
-        self.definitions = {
-            "Fashion Devotee": {
-                "emoji": "👗",
-                "keywords": ["fashion", "designer", "style", "runway"],
-                "description": "Passionate about fashion, style, and designer culture.",
-            },
-            "Beauty Maven": {
-                "emoji": "💄",
-                "keywords": ["beauty", "skincare", "personal care", "makeup", "cosmetic"],
-                "description": "Enthusiast of skincare routines and beauty trends.",
-            },
-            "Japanese Lover": {
-                "emoji": "🎌",
-                "keywords": ["japanese", "anime", "pop culture", "culture", "japan", "drama"],
-                "description": "Loves Japanese pop culture, anime, and traditions.",
-            }
-        }
-
     def load_data(self, file):
         self.df = pd.read_csv(file)
         self.df.columns = self.df.columns.str.strip().str.lower()
         return not self.df.empty
 
-    def assign_persona(self, interest_text):
-        interest_text = str(interest_text).lower()
-        for persona, config in self.definitions.items():
-            for kw in config["keywords"]:
-                if kw in interest_text:
-                    return persona
-        return "Unclassified"
+    def assign_persona(self, interest, product_category):
+        interest = str(interest).lower()
+        category = str(product_category).lower()
+        tags = []
+
+        # --- Persona Assignment ---
+        if "fashion show" in interest or "designer" in interest:
+            persona = "Fashion Devotee"
+            if "japanese fashion" in interest:
+                sub = "Harajuku Dreamer"
+            else:
+                sub = "Style Seeker"
+        elif "beauty" in category or "personal care" in category or "tgc" in interest:
+            persona = "Beauty Maven"
+            sub = "Voucher Hunter" if "tgc" in interest else "Beauty Enthusiast"
+        elif "japanese fashion and culture" in interest or "live performance" in interest:
+            persona = "Japanese Lover"
+            if "live" in interest or "kol" in interest:
+                sub = "Pop Culture Fan"
+            else:
+                sub = "Cultural Enthusiast"
+        else:
+            persona = "Unclassified"
+            sub = "-"
+        
+        tags.append(sub)
+        return persona, sub, tags
 
     def process(self):
         self.personas = []
         for _, row in self.df.iterrows():
             interest = row.get("interest", "")
-            persona = self.assign_persona(interest)
-            config = self.definitions.get(persona, {})
+            product_category = row.get("product category", "")
+            persona, sub_persona, tags = self.assign_persona(interest, product_category)
 
             self.personas.append({
                 "email": row.get("email", ""),
                 "phone": row.get("phone", ""),
                 "city": row.get("city", ""),
                 "interest": interest,
+                "product_category": product_category,
                 "persona": persona,
-                "emoji": config.get("emoji", "❓"),
-                "description": config.get("description", "No description available."),
+                "sub_persona": sub_persona,
+                "tags": tags,
+                "emoji": self.get_emoji(persona)
             })
+
+    def get_emoji(self, persona):
+        return {
+            "Fashion Devotee": "👗",
+            "Beauty Maven": "💄",
+            "Japanese Lover": "🎌",
+            "Unclassified": "❓"
+        }.get(persona, "❓")
 
     def to_df(self):
         return pd.DataFrame(self.personas)
@@ -64,13 +76,17 @@ class PersonaEngine:
     def get_stats(self):
         return Counter([p["persona"] for p in self.personas])
 
+    def get_city_stats(self):
+        df = self.to_df()
+        return df['city'].value_counts()
+
     def grouped_by_persona(self):
         return self.to_df().groupby("persona")
 
 
-# Streamlit UI
-st.title("🎯 Customer Persona Profiler (Preference-Based)")
-st.markdown("Upload your customer CSV with preferences, and get grouped personas.")
+# --- Streamlit UI ---
+st.title("🎯 Customer Persona Profiler")
+st.markdown("Upload a CSV to generate personas based on preferences and interests.")
 
 engine = PersonaEngine()
 file = st.file_uploader("📤 Upload CSV", type="csv")
@@ -80,32 +96,40 @@ if file:
         engine.process()
         df_result = engine.to_df()
         stats = engine.get_stats()
+        city_counts = engine.get_city_stats()
 
-        tab1, tab2 = st.tabs(["📊 Overview", "👥 Persona Groups"])
+        tab1, tab2 = st.tabs(["📊 Overview", "👥 Persona Details"])
 
         with tab1:
-            st.subheader("📊 Persona Distribution")
-            fig = px.pie(names=list(stats.keys()), values=list(stats.values()), title="Persona Breakdown")
-            st.plotly_chart(fig, use_container_width=True)
+            st.subheader("Persona Distribution")
+            fig_pie = px.pie(
+                names=list(stats.keys()), 
+                values=list(stats.values()), 
+                title="Persona Breakdown"
+            )
+            st.plotly_chart(fig_pie, use_container_width=True)
 
-            st.subheader("📍 City Distribution")
-            if "city" in df_result.columns:
-                city_counts = df_result['city'].value_counts().reset_index()
-                city_counts.columns = ['City', 'Count']
-                fig_city = px.pie(city_counts, names='City', values='Count', title="Customer City")
-                st.plotly_chart(fig_city, use_container_width=True)
+            st.subheader("City Distribution")
+            top_cities = city_counts[city_counts > (city_counts.sum() * 0.02)]
+            others = city_counts[city_counts <= (city_counts.sum() * 0.02)]
+            city_df = pd.DataFrame({
+                "City": list(top_cities.index) + ["Others"],
+                "Count": list(top_cities.values) + [others.sum()]
+            })
+            fig_city = px.pie(city_df, names='City', values='Count', title="Customer City")
+            st.plotly_chart(fig_city, use_container_width=True)
 
         with tab2:
-            st.header("👥 Persona Details")
+            st.subheader("👥 Detailed Persona List")
             grouped = engine.grouped_by_persona()
             for persona, group in grouped:
                 st.subheader(f"{group.iloc[0]['emoji']} {persona} ({len(group)} customers)")
-                st.write(group.iloc[0]['description'])
-                st.dataframe(group[['email', 'phone', 'city', 'interest']].reset_index(drop=True))
+                st.write(f"Sub-Persona Example: {group['sub_persona'].unique().tolist()}")
+                st.dataframe(group[['email', 'phone', 'city', 'interest', 'product_category', 'sub_persona']].reset_index(drop=True))
     else:
-        st.error("❌ Failed to read the file.")
+        st.error("❌ Could not read file. Please check format.")
 else:
-    st.info("👈 Please upload a CSV file to begin.")
+    st.info("👈 Upload your `cleaned_unique_customers.csv` to begin.")
 
 st.markdown("---")
-st.markdown("© 2025 Dorenth | Made with ❤️ using Python and Streamlit")
+st.markdown("© 2025 Dorenth | Powered by Python 🐍")
