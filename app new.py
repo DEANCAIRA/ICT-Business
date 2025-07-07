@@ -57,16 +57,13 @@ class PersonaEngine:
 
         return final_persona, scores
 
-    def make_tooltip(self, primary, scores):
-        emoji = {
+    def get_emoji(self, persona):
+        return {
             "Fashion Devotee": "👗",
             "Beauty Maven": "💄",
             "Japanese Lover": "🎌",
             "Unclassified": "❓"
-        }.get(primary, "❓")
-
-        tooltip = "\n".join([f"{p}: {s}" for p, s in scores.items()])
-        return f'<span title="{tooltip}">{emoji} {primary}</span>'
+        }.get(persona, "❓")
 
     def process(self):
         self.personas = []
@@ -76,7 +73,6 @@ class PersonaEngine:
             concerts = row.get("concerts attended", "")
 
             persona, scores = self.assign_persona_with_scores(interest, product_category)
-            tooltip = self.make_tooltip(persona, scores)
 
             self.personas.append({
                 "email": row.get("email", ""),
@@ -86,7 +82,10 @@ class PersonaEngine:
                 "product_interest": product_category,
                 "concerts_attended": concerts,
                 "persona": persona,
-                "tooltip": tooltip
+                "emoji": self.get_emoji(persona),
+                "score_fashion": scores["Fashion Devotee"],
+                "score_beauty": scores["Beauty Maven"],
+                "score_japanese": scores["Japanese Lover"]
             })
 
     def to_df(self):
@@ -104,7 +103,7 @@ class PersonaEngine:
 
 # --- Streamlit UI ---
 st.title("🎯 Customer Persona Profiler")
-st.markdown("Upload a CSV to generate exclusive personas. Hover over persona labels for score details.")
+st.markdown("Upload a CSV to classify customers. Scores shown for transparency.")
 
 engine = PersonaEngine()
 file = st.file_uploader("📤 Upload your `cleaned_unique_customers.csv`", type="csv")
@@ -116,7 +115,7 @@ if file:
         stats = engine.get_stats()
         city_counts = engine.get_city_stats()
 
-        tab1, tab2 = st.tabs(["📊 Overview", "👥 Persona Details"])
+        tab1, tab2 = st.tabs(["📊 Overview", "👥 Persona Table"])
 
         with tab1:
             col1, col2 = st.columns(2)
@@ -142,23 +141,20 @@ if file:
                 st.plotly_chart(fig_city, use_container_width=True)
 
         with tab2:
-            st.subheader("👥 Detailed Persona Table (hover for score breakdown)")
-            for persona, group in engine.grouped_by_persona():
-                st.markdown(f"### {persona} ({len(group)} customers)")
-                for _, row in group.iterrows():
-                    with st.expander(f"{row['email']}"):
-                        cols = st.columns(2)
-                        with cols[0]:
-                            st.markdown(f"**Phone:** {row['phone']}")
-                            st.markdown(f"**City:** {row['city']}")
-                            st.markdown(f"**Interest:** {row['interest']}")
-                            st.markdown(f"**Product Interest:** {row['product_interest']}")
-                            st.markdown(f"**Concerts Attended:** {row['concerts_attended']}")
-                        with cols[1]:
-                            st.markdown(f"**Persona:** {row['tooltip']}", unsafe_allow_html=True)
+            st.subheader("📋 Full Customer Table (with Persona Score Breakdown)")
+            display_df = df_result[[
+                "email", "phone", "city", "interest", "product_interest", "concerts_attended",
+                "emoji", "persona", "score_fashion", "score_beauty", "score_japanese"
+            ]].rename(columns={
+                "emoji": "🎭", "persona": "Primary Persona",
+                "score_fashion": "👗 Fashion Score",
+                "score_beauty": "💄 Beauty Score",
+                "score_japanese": "🎌 Japanese Score"
+            })
+            st.dataframe(display_df, use_container_width=True)
 
     else:
-        st.error("❌ Could not read CSV. Please check formatting.")
+        st.error("❌ Failed to read the uploaded CSV. Please check the format.")
 else:
     st.info("👈 Upload your `cleaned_unique_customers.csv` to begin.")
 
