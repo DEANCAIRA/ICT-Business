@@ -154,4 +154,4 @@ else:
     st.info("👈 Upload your `cleaned_unique_customers.csv` to begin.")
 
 st.markdown("---")
-st.markdown("© 2025 Dorenth | Phrase-Level Persona Engine", unsafe_allow_html=True)
+st.markdown("© 2025 Dorenth | Made using Python 🐍", unsafe_allow_html=True)
