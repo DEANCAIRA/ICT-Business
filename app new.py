@@ -4,7 +4,7 @@ import re
 from collections import Counter
 import plotly.express as px
 
-st.set_page_config(page_title="Smart Persona Profiler", layout="wide")
+st.set_page_config(page_title="Persona Profiler", layout="wide")
 
 class PersonaEngine:
     def __init__(self):
@@ -14,12 +14,11 @@ class PersonaEngine:
         self.weights = {
             "Fashion Devotee": {"fashion": 1, "designer": 1, "fashion show": 2, "designer collections": 1},
             "Beauty Maven": {"beauty": 2, "skincare": 1, "personal care": 1, "tgc": 1},
-            "Japanese Lover": {"japanese": 1, "anime": 1, "kol": 1}
+            "Japanese Lover": {"japanese": 1, "anime": 1, "kol": 1, "japanese fashion": 2}
         }
 
-        # Define matchable keywords for intent
         self.intent_keywords = {
-            "Beauty Maven": ["beauty", "skincare", "makeup", "personal care", "cosmetic"],
+            "Beauty Maven": ["beauty", "skincare", "makeup", "personal care", "cosmetic", "tgc"],
             "Fashion Devotee": ["fashion", "style", "lifestyle", "designer"],
             "Japanese Lover": ["japanese", "anime", "kol"]
         }
@@ -32,21 +31,21 @@ class PersonaEngine:
     def assign_persona(self, interest: str, product_category: str):
         product_text = str(product_category).lower()
 
-        # Step 1: Direct match from product category
+        # Step 1: Match product category if clear intent is found
         for persona, keywords in self.intent_keywords.items():
             if any(word in product_text for word in keywords):
                 return persona
 
-        # Step 2: Fallback to interest-based scoring
-        text = str(interest).lower()
-        text = re.sub(r'[^a-zA-Z0-9\s]', ' ', text)
-        text = re.sub(r'\s+', ' ', text).strip()
+        # Step 2: Fallback to interest scoring with split and normalization
+        raw_interests = re.split(r"[;,]", str(interest).lower())
+        cleaned_phrases = [re.sub(r'[^a-zA-Z0-9\s]', ' ', phrase).strip() for phrase in raw_interests]
 
         scores = {p: 0 for p in self.weights}
-        for persona, keywords in self.weights.items():
-            for kw, w in keywords.items():
-                if kw in text:
-                    scores[persona] += w
+        for phrase in cleaned_phrases:
+            for persona, keywords in self.weights.items():
+                for kw, w in keywords.items():
+                    if kw in phrase:
+                        scores[persona] += w
 
         best = max(scores, key=scores.get)
         return best if scores[best] > 0 else "Unclassified"
@@ -92,11 +91,11 @@ class PersonaEngine:
 
 
 # --- Streamlit UI ---
-st.title("🎯 Smart Customer Persona Profiler")
+st.title("🎯 Accurate Persona Profiler")
 st.markdown("""
-Personas are assigned based on product category **only if** it clearly reflects intent  
-(e.g. contains "beauty", "fashion", "japanese").  
-Otherwise, we fallback to `interest` using weighted scoring.
+✔ Product category used when clearly defined  
+✔ If unclear, falls back to multi-interest scoring  
+✔ Interest is now split and analyzed phrase-by-phrase
 """)
 
 engine = PersonaEngine()
@@ -135,7 +134,7 @@ if file:
                 st.plotly_chart(fig_city, use_container_width=True)
 
         with tab2:
-            st.subheader("📋 Customers Grouped by Persona (With Fallback Logic)")
+            st.subheader("📋 Customers Grouped by Persona (Split Interests)")
             group_df = df_result[[
                 "email", "phone", "city", "interest", "product_interest", "concerts_attended",
                 "emoji", "persona"
@@ -150,9 +149,9 @@ if file:
                     st.dataframe(filtered.drop(columns=["Primary Persona", "🎭"]).reset_index(drop=True), use_container_width=True)
 
     else:
-        st.error("❌ Failed to read the uploaded CSV. Please check the format.")
+        st.error("❌ Could not read uploaded CSV. Please check formatting.")
 else:
     st.info("👈 Upload your `cleaned_unique_customers.csv` to begin.")
 
 st.markdown("---")
-st.markdown("© 2025 Dorenth | Smart Fallback Persona System", unsafe_allow_html=True)
+st.markdown("© 2025 Dorenth | Phrase-Level Persona Engine", unsafe_allow_html=True)
