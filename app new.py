@@ -91,12 +91,7 @@ class PersonaEngine:
 
 
 # --- Streamlit UI ---
-st.title("🎯 Accurate Persona Profiler")
-st.markdown("""
-✔ Product category used when clearly defined  
-✔ If unclear, falls back to multi-interest scoring  
-✔ Interest is now split and analyzed phrase-by-phrase
-""")
+st.title("Accurate Persona Profiler")
 
 engine = PersonaEngine()
 file = st.file_uploader("📤 Upload your `cleaned_unique_customers.csv`", type="csv")
