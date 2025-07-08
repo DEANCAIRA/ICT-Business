@@ -4,33 +4,18 @@ import re
 from collections import Counter
 import plotly.express as px
 
-st.set_page_config(page_title="Customer Persona Profiler", layout="wide")
+st.set_page_config(page_title="Simplified Persona Profiler", layout="wide")
 
 class PersonaEngine:
     def __init__(self):
         self.df = None
         self.personas = []
 
+        # Only needed for fallback scoring
         self.weights = {
-            "Fashion Devotee": {
-                "fashion shows": 2,
-                "fashion show": 2,
-                "designer collections": 1,
-                "designer": 1,
-                "fashion": 1,
-            },
-            "Beauty Maven": {
-                "beauty": 2,
-                "personal care": 1,
-                "skincare": 1,
-                "tgc": 1,
-            },
-            "Japanese Lover": {
-                "japanese fashion and culture": 2,
-                "japanese": 1,
-                "anime": 1,
-                "kol": 1
-            }
+            "Fashion Devotee": {"fashion": 1, "designer": 1, "fashion show": 2, "designer collections": 1},
+            "Beauty Maven": {"beauty": 2, "skincare": 1, "personal care": 1, "tgc": 1},
+            "Japanese Lover": {"japanese": 1, "anime": 1, "kol": 1}
         }
 
     def load_data(self, file):
@@ -38,30 +23,30 @@ class PersonaEngine:
         self.df.columns = self.df.columns.str.strip().str.lower()
         return not self.df.empty
 
-    def assign_persona_with_scores(self, interest: str, product_category: str):
-        combined_text = f"{interest} {product_category}".lower()
-        text = re.sub(r'[^a-zA-Z0-9\s]', ' ', combined_text)
+    def assign_persona(self, interest: str, product_category: str):
+        product_text = str(product_category).lower()
+
+        # Step 1: Simple direct matching from product_category
+        if any(w in product_text for w in ["beauty", "skincare", "makeup", "personal care", "cosmetic"]):
+            return "Beauty Maven"
+        elif any(w in product_text for w in ["fashion", "style", "lifestyle", "designer"]):
+            return "Fashion Devotee"
+        elif any(w in product_text for w in ["japanese", "anime", "kol"]):
+            return "Japanese Lover"
+
+        # Step 2: Fallback to interest keyword scoring
+        text = str(interest).lower()
+        text = re.sub(r'[^a-zA-Z0-9\s]', ' ', text)
         text = re.sub(r'\s+', ' ', text).strip()
 
         scores = {p: 0 for p in self.weights}
         for persona, keywords in self.weights.items():
-            for kw, weight in keywords.items():
+            for kw, w in keywords.items():
                 if kw in text:
-                    scores[persona] += weight
+                    scores[persona] += w
 
-        if "live performance" in text and ("japanese" in text or "kol" in text):
-            scores["Japanese Lover"] += 1
-
-        best = max(scores, key=lambda p: scores[p])
-        final_persona = best if scores[best] > 0 else "Unclassified"
-
-        # 🔁 New override logic
-        if final_persona == "Fashion Devotee":
-            beauty_signals = ["beauty", "skincare", "personal care", "makeup", "cosmetics", "tgc"]
-            if any(b in product_category.lower() for b in beauty_signals):
-                final_persona = "Beauty Maven"
-
-        return final_persona, scores
+        best = max(scores, key=scores.get)
+        return best if scores[best] > 0 else "Unclassified"
 
     def get_emoji(self, persona):
         return {
@@ -77,8 +62,7 @@ class PersonaEngine:
             interest = row.get("interest", "")
             product_category = row.get("product category", "")
             concerts = row.get("concerts attended", "")
-
-            persona, scores = self.assign_persona_with_scores(interest, product_category)
+            persona = self.assign_persona(interest, product_category)
 
             self.personas.append({
                 "email": row.get("email", ""),
@@ -88,10 +72,7 @@ class PersonaEngine:
                 "product_interest": product_category,
                 "concerts_attended": concerts,
                 "persona": persona,
-                "emoji": self.get_emoji(persona),
-                "score_fashion": scores["Fashion Devotee"],
-                "score_beauty": scores["Beauty Maven"],
-                "score_japanese": scores["Japanese Lover"]
+                "emoji": self.get_emoji(persona)
             })
 
     def to_df(self):
@@ -108,8 +89,8 @@ class PersonaEngine:
 
 
 # --- Streamlit UI ---
-st.title("🎯 Customer Persona Profiler")
-st.markdown("Upload a CSV to classify customers. If product interest is beauty, it overrides fashion persona.")
+st.title("🎯 Simplified Customer Persona Profiler")
+st.markdown("Personas are assigned based on **product category first**, falling back to interest when needed.")
 
 engine = PersonaEngine()
 file = st.file_uploader("📤 Upload your `cleaned_unique_customers.csv`", type="csv")
@@ -147,15 +128,12 @@ if file:
                 st.plotly_chart(fig_city, use_container_width=True)
 
         with tab2:
-            st.subheader("📋 Customers Grouped by Persona (With Score Breakdown)")
+            st.subheader("📋 Customers Grouped by Persona (Simple Matching)")
             group_df = df_result[[
                 "email", "phone", "city", "interest", "product_interest", "concerts_attended",
-                "emoji", "persona", "score_fashion", "score_beauty", "score_japanese"
+                "emoji", "persona"
             ]].rename(columns={
-                "emoji": "🎭", "persona": "Primary Persona",
-                "score_fashion": "👗 Fashion Score",
-                "score_beauty": "💄 Beauty Score",
-                "score_japanese": "🎌 Japanese Score"
+                "emoji": "🎭", "persona": "Primary Persona"
             })
 
             for persona in ["Fashion Devotee", "Beauty Maven", "Japanese Lover", "Unclassified"]:
@@ -165,9 +143,9 @@ if file:
                     st.dataframe(filtered.drop(columns=["Primary Persona", "🎭"]).reset_index(drop=True), use_container_width=True)
 
     else:
-        st.error("❌ Failed to read the uploaded CSV. Please check the format.")
+        st.error("❌ Could not read CSV. Please check formatting.")
 else:
     st.info("👈 Upload your `cleaned_unique_customers.csv` to begin.")
 
 st.markdown("---")
-st.markdown("© 2025 Dorenth | Made using Python 🐍", unsafe_allow_html=True)
+st.markdown("© 2025 Dorenth | Product-Intent-Driven Profiling", unsafe_allow_html=True)
