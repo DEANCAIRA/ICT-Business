@@ -55,6 +55,12 @@ class PersonaEngine:
         best = max(scores, key=lambda p: scores[p])
         final_persona = best if scores[best] > 0 else "Unclassified"
 
+        # 🔁 New override logic
+        if final_persona == "Fashion Devotee":
+            beauty_signals = ["beauty", "skincare", "personal care", "makeup", "cosmetics", "tgc"]
+            if any(b in product_category.lower() for b in beauty_signals):
+                final_persona = "Beauty Maven"
+
         return final_persona, scores
 
     def get_emoji(self, persona):
@@ -102,8 +108,8 @@ class PersonaEngine:
 
 
 # --- Streamlit UI ---
-st.title("Customer Persona Profiler")
-st.markdown("Upload a CSV to classify customers. Scores are displayed for transparency.")
+st.title("🎯 Customer Persona Profiler")
+st.markdown("Upload a CSV to classify customers. If product interest is beauty, it overrides fashion persona.")
 
 engine = PersonaEngine()
 file = st.file_uploader("📤 Upload your `cleaned_unique_customers.csv`", type="csv")
