@@ -4,18 +4,24 @@ import re
 from collections import Counter
 import plotly.express as px
 
-st.set_page_config(page_title="Simplified Persona Profiler", layout="wide")
+st.set_page_config(page_title="Smart Persona Profiler", layout="wide")
 
 class PersonaEngine:
     def __init__(self):
         self.df = None
         self.personas = []
 
-        # Only needed for fallback scoring
         self.weights = {
             "Fashion Devotee": {"fashion": 1, "designer": 1, "fashion show": 2, "designer collections": 1},
             "Beauty Maven": {"beauty": 2, "skincare": 1, "personal care": 1, "tgc": 1},
             "Japanese Lover": {"japanese": 1, "anime": 1, "kol": 1}
+        }
+
+        # Define matchable keywords for intent
+        self.intent_keywords = {
+            "Beauty Maven": ["beauty", "skincare", "makeup", "personal care", "cosmetic"],
+            "Fashion Devotee": ["fashion", "style", "lifestyle", "designer"],
+            "Japanese Lover": ["japanese", "anime", "kol"]
         }
 
     def load_data(self, file):
@@ -26,15 +32,12 @@ class PersonaEngine:
     def assign_persona(self, interest: str, product_category: str):
         product_text = str(product_category).lower()
 
-        # Step 1: Simple direct matching from product_category
-        if any(w in product_text for w in ["beauty", "skincare", "makeup", "personal care", "cosmetic"]):
-            return "Beauty Maven"
-        elif any(w in product_text for w in ["fashion", "style", "lifestyle", "designer"]):
-            return "Fashion Devotee"
-        elif any(w in product_text for w in ["japanese", "anime", "kol"]):
-            return "Japanese Lover"
+        # Step 1: Direct match from product category
+        for persona, keywords in self.intent_keywords.items():
+            if any(word in product_text for word in keywords):
+                return persona
 
-        # Step 2: Fallback to interest keyword scoring
+        # Step 2: Fallback to interest-based scoring
         text = str(interest).lower()
         text = re.sub(r'[^a-zA-Z0-9\s]', ' ', text)
         text = re.sub(r'\s+', ' ', text).strip()
@@ -89,8 +92,12 @@ class PersonaEngine:
 
 
 # --- Streamlit UI ---
-st.title("🎯 Simplified Customer Persona Profiler")
-st.markdown("Personas are assigned based on **product category first**, falling back to interest when needed.")
+st.title("🎯 Smart Customer Persona Profiler")
+st.markdown("""
+Personas are assigned based on product category **only if** it clearly reflects intent  
+(e.g. contains "beauty", "fashion", "japanese").  
+Otherwise, we fallback to `interest` using weighted scoring.
+""")
 
 engine = PersonaEngine()
 file = st.file_uploader("📤 Upload your `cleaned_unique_customers.csv`", type="csv")
@@ -128,7 +135,7 @@ if file:
                 st.plotly_chart(fig_city, use_container_width=True)
 
         with tab2:
-            st.subheader("📋 Customers Grouped by Persona (Simple Matching)")
+            st.subheader("📋 Customers Grouped by Persona (With Fallback Logic)")
             group_df = df_result[[
                 "email", "phone", "city", "interest", "product_interest", "concerts_attended",
                 "emoji", "persona"
@@ -143,9 +150,9 @@ if file:
                     st.dataframe(filtered.drop(columns=["Primary Persona", "🎭"]).reset_index(drop=True), use_container_width=True)
 
     else:
-        st.error("❌ Could not read CSV. Please check formatting.")
+        st.error("❌ Failed to read the uploaded CSV. Please check the format.")
 else:
     st.info("👈 Upload your `cleaned_unique_customers.csv` to begin.")
 
 st.markdown("---")
-st.markdown("© 2025 Dorenth | Product-Intent-Driven Profiling", unsafe_allow_html=True)
+st.markdown("© 2025 Dorenth | Smart Fallback Persona System", unsafe_allow_html=True)
