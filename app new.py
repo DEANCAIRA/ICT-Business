@@ -12,56 +12,56 @@ class PersonaEngine:
         self.df = None
         self.personas = []
         
-        # Enhanced keyword weights with more comprehensive coverage
+        # Simplified equal-weight keywords for clear, justifiable classification
         self.persona_keywords = {
             "Fashion Devotee": {
-                # Fashion-specific terms
-                "fashion": 3,
-                "style": 2,
-                "designer": 3,
-                "fashion show": 4,
-                "designer collections": 4,
-                "lifestyle": 2,
-                "clothing": 2,
-                "outfit": 2,
-                "trendy": 2,
-                "boutique": 2,
+                # All fashion-related terms get equal weight
+                "fashion": 1,
+                "style": 1,
+                "designer": 1,
+                "fashion show": 1,
+                "designer collections": 1,
+                "lifestyle": 1,
+                "clothing": 1,
+                "outfit": 1,
+                "trendy": 1,
+                "boutique": 1,
                 # Entertainment terms (fallback for fashion)
                 "live performance": 1,
                 "entertainment": 1,
                 "digital service": 1
             },
             "Beauty Maven": {
-                # Beauty-specific terms
-                "beauty": 3,
-                "skincare": 3,
-                "makeup": 3,
-                "personal care": 4,
-                "cosmetic": 3,
-                "beauty and personal care": 4,
-                "tgc": 2,  # TGC often associated with beauty
-                "wellness": 2,
-                "grooming": 2,
-                "spa": 2
+                # All beauty-related terms get equal weight
+                "beauty": 1,
+                "skincare": 1,
+                "makeup": 1,
+                "personal care": 1,
+                "cosmetic": 1,
+                "beauty and personal care": 1,
+                "tgc": 1,
+                "wellness": 1,
+                "grooming": 1,
+                "spa": 1
             },
             "Japanese Lover": {
-                # Japanese culture terms
-                "japanese": 4,
-                "japan": 3,
-                "anime": 3,
-                "manga": 3,
-                "kol": 2,
-                "japanese fashion": 4,
-                "japanese culture": 4,
-                "jpop": 3,
-                "kawaii": 3,
-                "otaku": 3,
-                "cosplay": 3
+                # All Japanese culture terms get equal weight
+                "japanese": 1,
+                "japan": 1,
+                "anime": 1,
+                "manga": 1,
+                "kol": 1,
+                "japanese fashion": 1,
+                "japanese culture": 1,
+                "jpop": 1,
+                "kawaii": 1,
+                "otaku": 1,
+                "cosplay": 1
             }
         }
         
-        # Minimum threshold for persona assignment
-        self.min_threshold = 2
+        # Minimum threshold for persona assignment (simplified)
+        self.min_threshold = 1
 
     def load_data(self, file):
         self.df = pd.read_csv(file)
@@ -69,7 +69,7 @@ class PersonaEngine:
         return not self.df.empty
 
     def calculate_persona_scores(self, interest: str, product_category: str):
-        """Calculate scores for all personas based on interest and product category"""
+        """Calculate scores for all personas - simplified equal weighting"""
         interest_text = str(interest).lower()
         product_text = str(product_category).lower()
         
@@ -82,16 +82,16 @@ class PersonaEngine:
         
         scores = {persona: 0 for persona in self.persona_keywords}
         
-        # Score each persona based on keyword matches with different weights
+        # Simple scoring: each keyword match = +1 point
         for persona, keywords in self.persona_keywords.items():
-            for keyword, base_weight in keywords.items():
-                # Count in interest field (higher weight - shows genuine interest)
+            for keyword in keywords.keys():
+                # Count in interest field
                 interest_count = len(re.findall(r'\b' + re.escape(keyword) + r'\b', interest_clean))
-                scores[persona] += interest_count * base_weight * 1.5  # 1.5x weight for interests
+                scores[persona] += interest_count
                 
-                # Count in product category (standard weight - shows purchase intent)
+                # Count in product category  
                 product_count = len(re.findall(r'\b' + re.escape(keyword) + r'\b', product_clean))
-                scores[persona] += product_count * base_weight * 1.0  # 1.0x weight for product
+                scores[persona] += product_count
         
         return scores
 
@@ -224,7 +224,8 @@ class PersonaEngine:
 
 
 # --- Streamlit UI ---
-st.title("Persona Customer Profiler")
+st.title("🎭 Multi-Persona Customer Profiler")
+st.markdown("*Captures customers with multiple interests - no one gets left behind!*")
 
 engine = PersonaEngine()
 file = st.file_uploader("📤 Upload your customer CSV file", type="csv")
@@ -258,6 +259,12 @@ if file:
 
             with col1:
                 st.subheader("Individual Persona Distribution")
+                
+                # Add validation note
+                st.info("💡 **Validation Note**: High Beauty Maven percentage could indicate:\n"
+                       "• Genuine beauty interest from TGC attendees\n"  
+                       "• Cross-event traffic from nearby beauty events\n"
+                       "• Natural overlap between fashion and beauty interests")
                 
                 fig_pie = px.pie(
                     names=list(persona_stats.keys()),
@@ -321,6 +328,60 @@ if file:
                 st.dataframe(sample_multi, use_container_width=True)
 
         with tab3:
+            st.subheader("🎯 Engagement Quality Analysis")
+            st.markdown("*Validates persona assignments by measuring engagement depth*")
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.markdown("**Engagement Quality by Persona**")
+                if engagement_analysis:
+                    engagement_df = pd.DataFrame([
+                        {
+                            "Persona": persona,
+                            "Avg Engagement Score": f"{data['avg_engagement']:.1f}",
+                            "High Engagement %": f"{(data['high_engagement_count']/data['total_count']*100):.1f}%",
+                            "Total Users": data['total_count']
+                        }
+                        for persona, data in engagement_analysis.items()
+                    ])
+                    st.dataframe(engagement_df, use_container_width=True)
+                    
+                    st.markdown("**📈 Engagement Score Factors:**")
+                    st.markdown("""
+                    - Multiple specific interests: +2-6 pts
+                    - Detailed preferences (designer, japanese fashion, etc): +3 pts  
+                    - High concert attendance: +1-3 pts
+                    - **Score ≥6**: High engagement (genuine interest)
+                    - **Score <4**: Potential spillover traffic
+                    """)
+            
+            with col2:
+                st.markdown("**Persona Validation Insights**")
+                if engagement_analysis:
+                    beauty_data = engagement_analysis.get('Beauty Maven', {})
+                    fashion_data = engagement_analysis.get('Fashion Devotee', {})
+                    japanese_data = engagement_analysis.get('Japanese Lover', {})
+                    
+                    if beauty_data:
+                        beauty_high_pct = (beauty_data['high_engagement_count']/beauty_data['total_count']*100)
+                        if beauty_high_pct > 60:
+                            st.success(f"✅ **Beauty Maven validated**: {beauty_high_pct:.1f}% show high engagement")
+                        elif beauty_high_pct > 40:
+                            st.warning(f"⚠️ **Beauty Maven mixed**: {beauty_high_pct:.1f}% high engagement, {100-beauty_high_pct:.1f}% potential spillover")
+                        else:
+                            st.error(f"❌ **Beauty Maven concern**: Only {beauty_high_pct:.1f}% high engagement - investigate spillover")
+                    
+                    st.markdown("**🔍 Spillover Indicators:**")
+                    st.markdown("""
+                    - Low engagement scores in dominant persona
+                    - Generic interests only
+                    - Low concert attendance  
+                    - Concentrated in specific time periods
+                    - Geographic clustering near other events
+                    """)
+
+        with tab5:
             st.subheader("👥 Customers by Persona Groups")
             
             # Group by individual personas
@@ -414,14 +475,7 @@ else:
     st.info("👈 Upload your customer CSV file to begin persona analysis.")
     
     # Show example of improved logic
-    st.markdown("### 🆕 Improved Features:")
-    st.markdown("""
-    - **Multi-persona assignment**: Customers can have multiple personas (e.g., "Fashion Devotee + Beauty Maven")
-    - **Balanced scoring**: Interest field weighted 1.5x (genuine interest) + Product category 1.0x (purchase intent)
-    - **Enhanced keyword detection**: Weighted scoring
-    - **fallback rules**: Live performance + entertainment + digital service → Fashion Devotee
-    - **Threshold-based classification**: Only assigns personas when there's sufficient evidence
-    - **Detailed scoring**: Shows match confidence for each assignment
+    st.markdown("### 🆕 Simplified Multi-Persona Approach:")
     """)
 
 st.markdown("---")
