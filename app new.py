@@ -145,6 +145,7 @@ class PersonaEngine:
                 "first_name": row.get("first name", ""),
                 "last_name": row.get("last name", ""),
                 "city": row.get("city", ""),
+                "gender": row.get("gender", "Unknown"),  # Add gender field
                 "interest": interest,
                 "product_interest": product_category,
                 "concerts_attended": concerts,
@@ -171,6 +172,10 @@ class PersonaEngine:
     def get_city_stats(self):
         return self.to_df()["city"].value_counts()
 
+    def get_gender_stats(self):
+        df = self.to_df()
+        return df["gender"].value_counts()
+
     def get_multi_persona_users(self):
         return [p for p in self.personas if len(p["assigned_personas"]) > 1]
 
@@ -188,11 +193,13 @@ if file:
         persona_stats = engine.get_persona_stats()
         combination_stats = engine.get_combination_stats()
         city_counts = engine.get_city_stats()
+        gender_stats = engine.get_gender_stats()
         multi_persona_users = engine.get_multi_persona_users()
 
         tab1, tab2, tab3 = st.tabs(["Persona Distribution", "Multi-Persona Analysis", "Customer Details"])
 
         with tab1:
+            # First row - Persona and City
             col1, col2 = st.columns(2)
 
             with col1:
@@ -200,8 +207,15 @@ if file:
                 fig_pie = px.pie(
                     names=list(persona_stats.keys()),
                     values=list(persona_stats.values()),
-                    title="Persona Assignments"
+                    title="Persona Assignments",
+                    color_discrete_map={
+                        'Fashion Devotee': '#FF6B6B',
+                        'Beauty Maven': '#4ECDC4',
+                        'Japanese Lover': '#45B7D1',
+                        'Unclassified': '#95A99C'
+                    }
                 )
+                fig_pie.update_traces(textposition='inside', textinfo='percent+label')
                 st.plotly_chart(fig_pie, use_container_width=True)
 
             with col2:
@@ -213,7 +227,48 @@ if file:
                     "Count": list(top_cities.values) + [rest.sum()]
                 })
                 fig_city = px.pie(city_df, names="City", values="Count", title="Customers by City")
+                fig_city.update_traces(textposition='inside', textinfo='percent+label')
                 st.plotly_chart(fig_city, use_container_width=True)
+
+            # Second row - Gender and Multi-Persona
+            col3, col4 = st.columns(2)
+
+            with col3:
+                st.subheader("Gender Distribution")
+                if not gender_stats.empty:
+                    fig_gender = px.pie(
+                        names=gender_stats.index,
+                        values=gender_stats.values,
+                        title="Customer Gender",
+                        color_discrete_map={
+                            'Male': '#4169E1',
+                            'Female': '#FF69B4',
+                            'M': '#4169E1',
+                            'F': '#FF69B4',
+                            'Unknown': '#95A99C'
+                        }
+                    )
+                    fig_gender.update_traces(textposition='inside', textinfo='percent+label')
+                    st.plotly_chart(fig_gender, use_container_width=True)
+                else:
+                    st.info("No gender data available")
+
+            with col4:
+                st.subheader("Interest Diversity")
+                single_persona = len([p for p in engine.personas if len(p["assigned_personas"]) == 1])
+                multi_persona = len(multi_persona_users)
+                
+                fig_multi = px.pie(
+                    names=["Single Interest", "Multi-Interest"],
+                    values=[single_persona, multi_persona],
+                    title="Customer Interest Types",
+                    color_discrete_map={
+                        'Single Interest': '#FDB462',
+                        'Multi-Interest': '#80B1D3'
+                    }
+                )
+                fig_multi.update_traces(textposition='inside', textinfo='percent+label')
+                st.plotly_chart(fig_multi, use_container_width=True)
 
         with tab2:
             st.subheader("Multi-Persona Analysis")
@@ -236,20 +291,21 @@ if file:
                 single_persona = len([p for p in engine.personas if len(p["assigned_personas"]) == 1])
                 multi_persona = len(multi_persona_users)
                 
-                fig_multi = px.pie(
+                fig_multi2 = px.pie(
                     names=["Single Persona", "Multi-Persona"],
                     values=[single_persona, multi_persona],
                     title="Single vs Multi-Persona Users"
                 )
-                st.plotly_chart(fig_multi, use_container_width=True)
+                st.plotly_chart(fig_multi2, use_container_width=True)
 
             if multi_persona_users:
                 st.markdown("**Sample Multi-Persona Users**")
                 sample_multi = pd.DataFrame(multi_persona_users[:5])[
-                    ["first_name", "last_name", "city", "persona_string", "interest", "product_interest"]
+                    ["first_name", "last_name", "gender", "city", "persona_string", "interest", "product_interest"]
                 ].rename(columns={
                     "first_name": "First Name",
-                    "last_name": "Last Name", 
+                    "last_name": "Last Name",
+                    "gender": "Gender",
                     "city": "City",
                     "persona_string": "Assigned Personas",
                     "interest": "Interests",
@@ -299,10 +355,11 @@ if file:
                         combo_customers = combination_data[combo]
                         
                         combo_df = pd.DataFrame(combo_customers)[
-                            ["first_name", "last_name", "interest", "product_interest", "concerts_attended"]
+                            ["first_name", "last_name", "gender", "interest", "product_interest", "concerts_attended"]
                         ].rename(columns={
                             "first_name": "First Name",
                             "last_name": "Last Name",
+                            "gender": "Gender",
                             "interest": "Interests", 
                             "product_interest": "Product Category",
                             "concerts_attended": "Concert Attendance"
@@ -312,11 +369,12 @@ if file:
                 
                 # Download
                 detailed_df = pd.DataFrame(filtered_data)[
-                    ["first_name", "last_name", "persona_string", 
+                    ["first_name", "last_name", "gender", "persona_string", 
                      "interest", "product_interest", "concerts_attended"]
                 ].rename(columns={
                     "first_name": "First Name",
                     "last_name": "Last Name",
+                    "gender": "Gender",
                     "persona_string": "Personas",
                     "interest": "Interests", 
                     "product_interest": "Product Category",
