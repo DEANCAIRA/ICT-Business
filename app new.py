@@ -410,16 +410,7 @@ else:
     
     # Show example of improved logic
     st.markdown("### 🆕 Simplified Presence-Based Approach:")
-    st.markdown("""
-    - **Simple logic**: If ANY keyword from a persona is found → assign that persona
-    - **No complex scoring**: Just presence/absence detection
-    - **Multi-persona support**: Customer can have Fashion + Beauty + Japanese personas
-    - **Easy to explain**: "They mentioned fashion and beauty terms, so they get both personas"
-    - **Excluded terms filter**: Removes promotional/generic terms from analysis
-    - **Clean classification**: Focuses on genuine interest indicators only
-    - **Transparent logic**: Easy to audit and defend to stakeholders
-    - **Fast processing**: No complex calculations needed
-    """)
+  
 
 st.markdown("---")
-st.markdown("© 2025 TGC Event Analysis | Enhanced Multi-Persona Classification 🎭")
+st.markdown("© 2025 TGC Event Analysis | Enhanced Multi-Persona Classification")
