@@ -76,67 +76,11 @@ class PersonaEngine:
             "exclusive",
             "kol influencer appearances"  # Too generic - doesn't indicate specific persona
         ]
-        
-        # Minimum threshold for persona assignment (not needed for presence-based)
-        self.min_threshold = 1
 
     def load_data(self, file):
         self.df = pd.read_csv(file)
         self.df.columns = self.df.columns.str.strip().str.lower()
         return not self.df.empty
-
-    def calculate_persona_scores(self, interest: str, product_category: str):
-        """Calculate scores for all personas - using full phrases and excluding certain terms"""
-        # Handle list format (convert to string if needed)
-        if isinstance(interest, list):
-            interest_text = ", ".join(str(item) for item in interest).lower()
-        else:
-            interest_text = str(interest).lower()
-            
-        product_text = str(product_category).lower()
-        
-        # Remove excluded terms from scoring (but keep original text for display)
-        interest_for_scoring = interest_text
-        product_for_scoring = product_text
-        
-        for excluded_term in self.excluded_terms:
-            interest_for_scoring = interest_for_scoring.replace(excluded_term, "")
-            product_for_scoring = product_for_scoring.replace(excluded_term, "")
-        
-        # Clean and normalize text for scoring
-        interest_clean = re.sub(r'[^\w\s]', ' ', interest_for_scoring)
-        interest_clean = re.sub(r'\s+', ' ', interest_clean).strip()
-        
-        product_clean = re.sub(r'[^\w\s]', ' ', product_for_scoring)
-        product_clean = re.sub(r'\s+', ' ', product_clean).strip()
-        
-        scores = {persona: 0 for persona in self.persona_keywords}
-        
-        # Create copies for phrase removal tracking
-        interest_remaining = interest_clean
-        product_remaining = product_clean
-        
-        # Score using full phrases - prioritize longer phrases first to avoid double counting
-        for persona, keywords in self.persona_keywords.items():
-            # Sort keywords by length (longest first) to match full phrases before sub-phrases
-            sorted_keywords = sorted(keywords.keys(), key=len, reverse=True)
-            
-            for keyword in sorted_keywords:
-                # Count in interest field (only if not already matched by longer phrase)
-                interest_matches = len(re.findall(r'\b' + re.escape(keyword) + r'\b', interest_remaining))
-                if interest_matches > 0:
-                    scores[persona] += interest_matches
-                    # Remove matched phrases to prevent double counting
-                    interest_remaining = re.sub(r'\b' + re.escape(keyword) + r'\b', '', interest_remaining)
-                
-                # Count in product category
-                product_matches = len(re.findall(r'\b' + re.escape(keyword) + r'\b', product_remaining))
-                if product_matches > 0:
-                    scores[persona] += product_matches
-                    # Remove matched phrases to prevent double counting
-                    product_remaining = re.sub(r'\b' + re.escape(keyword) + r'\b', '', product_remaining)
-        
-        return scores
 
     def assign_personas(self, interest: str, product_category: str):
         """Simple presence-based persona assignment - if keywords found, assign persona"""
@@ -239,42 +183,6 @@ class PersonaEngine:
     def get_city_stats(self):
         return self.to_df()["city"].value_counts()
 
-    def get_engagement_quality_score(self, person):
-        """Calculate engagement quality to differentiate genuine vs spillover traffic"""
-        score = 0
-        
-        # Higher score for multiple interests mentioned
-        interest_count = len(re.split(r'[,;]', str(person.get('interest', ''))))
-        score += min(interest_count, 3) * 2  # Cap at 6 points
-        
-        # Higher score for specific/detailed interests vs generic ones
-        interest_text = str(person.get('interest', '')).lower()
-        if any(specific in interest_text for specific in ['designer', 'japanese fashion', 'fashion show', 'skincare', 'makeup']):
-            score += 3
-        
-        # Concert attendance indicates genuine event engagement
-        concerts = str(person.get('concerts_attended', '')).lower()
-        if 'more than 3' in concerts:
-            score += 3
-        elif '2 to 3' in concerts:
-            score += 2
-        elif '1' in concerts:
-            score += 1
-            
-        return score
-
-    def analyze_engagement_quality(self):
-        """Analyze engagement quality to validate persona assignments"""
-        results = {}
-        for persona in self.persona_keywords.keys():
-            persona_users = [p for p in self.personas if persona in p["assigned_personas"]]
-            if persona_users:
-                scores = [self.get_engagement_quality_score(p) for p in persona_users]
-                results[persona] = {
-                    'avg_engagement': sum(scores) / len(scores),
-                    'high_engagement_count': len([s for s in scores if s >= 6]),
-                    'total_count': len(persona_users)
-                }
     def get_multi_persona_users(self):
         """Get users with multiple personas"""
         return [p for p in self.personas if len(p["assigned_personas"]) > 1]
@@ -294,7 +202,6 @@ if file:
         combination_stats = engine.get_combination_stats()
         city_counts = engine.get_city_stats()
         multi_persona_users = engine.get_multi_persona_users()
-        engagement_analysis = engine.analyze_engagement_quality()
 
         # Overview metrics
         col1, col2, col3, col4 = st.columns(4)
@@ -308,7 +215,7 @@ if file:
             coverage = len([p for p in engine.personas if p["assigned_personas"] != ["Unclassified"]])
             st.metric("Classification Coverage", f"{coverage/len(df_result)*100:.1f}%")
 
-        tab1, tab2, tab3, tab4, tab5 = st.tabs(["📊 Persona Distribution", "🔄 Multi-Persona Analysis", "🎯 Engagement Quality", "👥 Customer Groups", "🔍 Detailed View"])
+        tab1, tab2, tab3 = st.tabs(["📊 Persona Distribution", "🔄 Multi-Persona Analysis", "🔍 Customer Details"])
 
         with tab1:
             col1, col2 = st.columns(2)
@@ -378,91 +285,7 @@ if file:
                 st.dataframe(sample_multi, use_container_width=True)
 
         with tab3:
-            st.subheader("🎯 Engagement Quality Analysis")
-            st.markdown("*Validates persona assignments by measuring engagement depth*")
-            
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                st.markdown("**Engagement Quality by Persona**")
-                if engagement_analysis:
-                    engagement_df = pd.DataFrame([
-                        {
-                            "Persona": persona,
-                            "Avg Engagement Score": f"{data['avg_engagement']:.1f}",
-                            "High Engagement %": f"{(data['high_engagement_count']/data['total_count']*100):.1f}%",
-                            "Total Users": data['total_count']
-                        }
-                        for persona, data in engagement_analysis.items()
-                    ])
-                    st.dataframe(engagement_df, use_container_width=True)
-                    
-                    st.markdown("**📈 Engagement Score Factors:**")
-                    st.markdown("""
-                    - Multiple specific interests: +2-6 pts
-                    - Detailed preferences (designer, japanese fashion, etc): +3 pts  
-                    - High concert attendance: +1-3 pts
-                    - **Score ≥6**: High engagement (genuine interest)
-                    - **Score <4**: Potential spillover traffic
-                    """)
-            
-            with col2:
-                st.markdown("**Persona Validation Insights**")
-                if engagement_analysis:
-                    beauty_data = engagement_analysis.get('Beauty Maven', {})
-                    fashion_data = engagement_analysis.get('Fashion Devotee', {})
-                    japanese_data = engagement_analysis.get('Japanese Lover', {})
-                    
-                    if beauty_data:
-                        beauty_high_pct = (beauty_data['high_engagement_count']/beauty_data['total_count']*100)
-                        if beauty_high_pct > 60:
-                            st.success(f"✅ **Beauty Maven validated**: {beauty_high_pct:.1f}% show high engagement")
-                        elif beauty_high_pct > 40:
-                            st.warning(f"⚠️ **Beauty Maven mixed**: {beauty_high_pct:.1f}% high engagement, {100-beauty_high_pct:.1f}% potential spillover")
-                        else:
-                            st.error(f"❌ **Beauty Maven concern**: Only {beauty_high_pct:.1f}% high engagement - investigate spillover")
-                    
-                    st.markdown("**🔍 Spillover Indicators:**")
-                    st.markdown("""
-                    - Low engagement scores in dominant persona
-                    - Generic interests only
-                    - Low concert attendance  
-                    - Concentrated in specific time periods
-                    - Geographic clustering near other events
-                    """)
-
-        with tab5:
-            st.subheader("👥 Customers by Persona Groups")
-            
-            # Group by individual personas
-            all_personas = list(engine.persona_keywords.keys()) + ["Unclassified"]
-            
-            for persona in all_personas:
-                # Get customers who have this persona (including multi-persona)
-                customers_with_persona = [
-                    p for p in engine.personas if persona in p["assigned_personas"]
-                ]
-                
-                if customers_with_persona:
-                    emoji = engine.get_emoji(persona)
-                    st.markdown(f"### {emoji} {persona} ({len(customers_with_persona)} customers)")
-                    
-                    persona_df = pd.DataFrame(customers_with_persona)[
-                        ["first_name", "last_name", "city", "persona_string", "interest", "product_interest", "total_personas"]
-                    ].rename(columns={
-                        "first_name": "First Name",
-                        "last_name": "Last Name",
-                        "city": "City", 
-                        "persona_string": "All Personas",
-                        "interest": "Interests",
-                        "product_interest": "Product Category",
-                        "total_personas": "Number of Personas"
-                    }).sort_values("Number of Personas", ascending=False)
-                    
-                    st.dataframe(persona_df.reset_index(drop=True), use_container_width=True)
-
-        with tab4:
-            st.subheader("🔍 Detailed Customer Analysis")
+            st.subheader("🔍 Customer Analysis & Persona Groups")
             
             # Search and filter options
             col1, col2 = st.columns(2)
@@ -489,8 +312,25 @@ if file:
                     if filter_persona in p["assigned_personas"]
                 ]
             
-            # Display detailed results
+            # Display results summary
             if filtered_data:
+                st.markdown(f"**Showing {len(filtered_data)} customers** {f'for {filter_persona}' if filter_persona != 'All' else ''}")
+                
+                # Show persona breakdown for filtered results
+                if len(filtered_data) > 1:
+                    filtered_persona_counts = defaultdict(int)
+                    for person in filtered_data:
+                        for persona in person["assigned_personas"]:
+                            filtered_persona_counts[persona] += 1
+                    
+                    col1, col2 = st.columns([2, 1])
+                    with col2:
+                        st.markdown("**Persona Breakdown:**")
+                        for persona, count in sorted(filtered_persona_counts.items(), key=lambda x: x[1], reverse=True):
+                            emoji = engine.get_emoji(persona)
+                            st.write(f"{emoji} {persona}: {count}")
+                
+                # Display detailed customer table
                 detailed_df = pd.DataFrame(filtered_data)[
                     ["emoji", "first_name", "last_name", "city", "persona_string", 
                      "interest", "product_interest", "concerts_attended", "total_personas"]
@@ -526,7 +366,7 @@ else:
     
     # Show example of improved logic
     st.markdown("### 🆕 Simplified Presence-Based Approach:")
-   
+    
 
 st.markdown("---")
-st.markdown("© 2025 TGC Event Analysis | Enhanced Multi-Persona Classification 🎭")
+st.markdown("© 2025 TGC Event Analysis | Enhanced Multi-Persona Classification")
