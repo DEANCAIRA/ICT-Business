@@ -180,7 +180,6 @@ class PersonaEngine:
 
 # --- Streamlit UI ---
 st.title("Multi-Persona Customer Profiler")
-st.markdown("*Captures customers with multiple interests - no one gets left behind!*")
 
 engine = PersonaEngine()
 file = st.file_uploader("📤 Upload your customer CSV file", type="csv")
