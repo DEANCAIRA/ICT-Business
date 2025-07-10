@@ -203,18 +203,6 @@ if file:
         city_counts = engine.get_city_stats()
         multi_persona_users = engine.get_multi_persona_users()
 
-        # Overview metrics
-        col1, col2, col3, col4 = st.columns(4)
-        with col1:
-            st.metric("Total Customers", len(df_result))
-        with col2:
-            st.metric("Multi-Persona Users", len(multi_persona_users))
-        with col3:
-            st.metric("Unique Combinations", len(combination_stats))
-        with col4:
-            coverage = len([p for p in engine.personas if p["assigned_personas"] != ["Unclassified"]])
-            st.metric("Classification Coverage", f"{coverage/len(df_result)*100:.1f}%")
-
         tab1, tab2, tab3 = st.tabs(["📊 Persona Distribution", "🔄 Multi-Persona Analysis", "🔍 Customer Details"])
 
         with tab1:
@@ -550,4 +538,4 @@ else:
     
 
 st.markdown("---")
-st.markdown("© 2025 TGC Event Analysis | Enhanced Multi-Persona Classification")
+st.markdown("© 2025 TGC Event Analysis | Enhanced Multi-Persona Classification 🎭")
