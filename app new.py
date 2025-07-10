@@ -5,7 +5,7 @@ from collections import Counter, defaultdict
 import plotly.express as px
 import plotly.graph_objects as go
 
-st.set_page_config(page_title="Multi-Persona Profiler", layout="wide")
+st.set_page_config(page_title="Persona Profiler", layout="wide")
 
 class PersonaEngine:
     def __init__(self):
@@ -258,12 +258,6 @@ if file:
 
             with col1:
                 st.subheader("Individual Persona Distribution")
-                
-                # Add validation note
-                st.info("💡 **Validation Note**: High Beauty Maven percentage could indicate:\n"
-                       "• Genuine beauty interest from TGC attendees\n"  
-                       "• Cross-event traffic from nearby beauty events\n"
-                       "• Natural overlap between fashion and beauty interests")
                 
                 fig_pie = px.pie(
                     names=list(persona_stats.keys()),
