@@ -5,60 +5,74 @@ from collections import Counter, defaultdict
 import plotly.express as px
 import plotly.graph_objects as go
 
-st.set_page_config(page_title="Persona Profiler", layout="wide")
+st.set_page_config(page_title="Multi-Persona Profiler", layout="wide")
 
 class PersonaEngine:
     def __init__(self):
         self.df = None
         self.personas = []
         
-        # Simplified equal-weight keywords for clear, justifiable classification
+        # Simplified equal-weight keywords - using full phrases, no individual words
         self.persona_keywords = {
             "Fashion Devotee": {
-                # All fashion-related terms get equal weight
+                # Fashion-specific phrases (full terms only)
+                "fashion shows": 1,
+                "designer collections": 1,
+                "fashion and lifestyle": 1,
+                "live performances": 1,
+                "live performances or entertainment": 1,
+                "entertainment": 1,
+                "digital services": 1,
+                "entertainment and digital services": 1,
                 "fashion": 1,
                 "style": 1,
                 "designer": 1,
-                "fashion show": 1,
-                "designer collections": 1,
                 "lifestyle": 1,
                 "clothing": 1,
                 "outfit": 1,
                 "trendy": 1,
-                "boutique": 1,
-                # Entertainment terms (fallback for fashion)
-                "live performance": 1,
-                "entertainment": 1,
-                "digital service": 1
+                "boutique": 1
             },
             "Beauty Maven": {
-                # All beauty-related terms get equal weight
+                # Beauty-specific phrases (full terms only)
+                "beauty and personal care": 1,
+                "personal care": 1,
                 "beauty": 1,
                 "skincare": 1,
                 "makeup": 1,
-                "personal care": 1,
                 "cosmetic": 1,
-                "beauty and personal care": 1,
-                "tgc": 1,
                 "wellness": 1,
                 "grooming": 1,
                 "spa": 1
             },
             "Japanese Lover": {
-                # All Japanese culture terms get equal weight
+                # Japanese culture phrases (full terms only)
+                "japanese fashion and culture": 1,
+                "japanese fashion": 1,
+                "japanese culture": 1,
+                "kol influencer appearances": 1,
                 "japanese": 1,
                 "japan": 1,
                 "anime": 1,
                 "manga": 1,
                 "kol": 1,
-                "japanese fashion": 1,
-                "japanese culture": 1,
                 "jpop": 1,
                 "kawaii": 1,
                 "otaku": 1,
                 "cosplay": 1
             }
         }
+        
+        # Words to exclude from scoring (but keep in display)
+        self.excluded_terms = [
+            "exclusive tgc products",
+            "exclusive tgc product", 
+            "tgc products",
+            "tgc product",
+            "voucher",
+            "vouchers",
+            "exclusive"
+        ]
         
         # Minimum threshold for persona assignment (simplified)
         self.min_threshold = 1
@@ -69,22 +83,33 @@ class PersonaEngine:
         return not self.df.empty
 
     def calculate_persona_scores(self, interest: str, product_category: str):
-        """Calculate scores for all personas - simplified equal weighting"""
+        """Calculate scores for all personas - using full phrases and excluding certain terms"""
         interest_text = str(interest).lower()
         product_text = str(product_category).lower()
         
-        # Clean and normalize text
-        interest_clean = re.sub(r'[^\w\s]', ' ', interest_text)
+        # Remove excluded terms from scoring (but keep original text for display)
+        interest_for_scoring = interest_text
+        product_for_scoring = product_text
+        
+        for excluded_term in self.excluded_terms:
+            interest_for_scoring = interest_for_scoring.replace(excluded_term, "")
+            product_for_scoring = product_for_scoring.replace(excluded_term, "")
+        
+        # Clean and normalize text for scoring
+        interest_clean = re.sub(r'[^\w\s]', ' ', interest_for_scoring)
         interest_clean = re.sub(r'\s+', ' ', interest_clean).strip()
         
-        product_clean = re.sub(r'[^\w\s]', ' ', product_text)
+        product_clean = re.sub(r'[^\w\s]', ' ', product_for_scoring)
         product_clean = re.sub(r'\s+', ' ', product_clean).strip()
         
         scores = {persona: 0 for persona in self.persona_keywords}
         
-        # Simple scoring: each keyword match = +1 point
+        # Score using full phrases - prioritize longer phrases first
         for persona, keywords in self.persona_keywords.items():
-            for keyword in keywords.keys():
+            # Sort keywords by length (longest first) to match full phrases before individual words
+            sorted_keywords = sorted(keywords.keys(), key=len, reverse=True)
+            
+            for keyword in sorted_keywords:
                 # Count in interest field
                 interest_count = len(re.findall(r'\b' + re.escape(keyword) + r'\b', interest_clean))
                 scores[persona] += interest_count
@@ -92,6 +117,12 @@ class PersonaEngine:
                 # Count in product category  
                 product_count = len(re.findall(r'\b' + re.escape(keyword) + r'\b', product_clean))
                 scores[persona] += product_count
+                
+                # Remove matched phrases to avoid double counting
+                if interest_count > 0:
+                    interest_clean = re.sub(r'\b' + re.escape(keyword) + r'\b', '', interest_clean)
+                if product_count > 0:
+                    product_clean = re.sub(r'\b' + re.escape(keyword) + r'\b', '', product_clean)
         
         return scores
 
@@ -258,6 +289,7 @@ if file:
 
             with col1:
                 st.subheader("Individual Persona Distribution")
+                
                 
                 fig_pie = px.pie(
                     names=list(persona_stats.keys()),
@@ -467,8 +499,9 @@ if file:
 else:
     st.info("👈 Upload your customer CSV file to begin persona analysis.")
     
+    # Show example of improved logic
+    st.markdown("### 🆕 Simplified Multi-Persona Approach:")
     
-   
 
 st.markdown("---")
 st.markdown("© 2025 TGC Event Analysis | Enhanced Multi-Persona Classification")
