@@ -11,44 +11,26 @@ class PersonaEngine:
         self.df = None
         self.personas = []
 
-        self.weights = {
-            "Fashion Devotee": {"fashion": 1, "designer": 1, "fashion show": 2, "designer collections": 1},
-            "Beauty Maven": {"beauty": 2, "skincare": 1, "personal care": 1, "tgc": 1},
-            "Japanese Lover": {"japanese": 1, "anime": 1, "kol": 1, "japanese fashion": 2}
-        }
-
-        self.intent_keywords = {
-            "Beauty Maven": ["beauty", "skincare", "makeup", "personal care", "cosmetic", "tgc"],
-            "Fashion Devotee": ["fashion", "style", "lifestyle", "designer"],
-            "Japanese Lover": ["japanese", "anime", "kol"]
-        }
-
     def load_data(self, file):
         self.df = pd.read_csv(file)
         self.df.columns = self.df.columns.str.strip().str.lower()
         return not self.df.empty
 
     def assign_persona(self, interest: str, product_category: str):
-        product_text = str(product_category).lower()
+        # Normalize inputs
+        interest = str(interest).lower()
+        product_category = str(product_category).lower()
 
-        # Step 1: Match product category if clear intent is found
-        for persona, keywords in self.intent_keywords.items():
-            if any(word in product_text for word in keywords):
-                return persona
+        # Step 1: Check if Q1 (interest) includes "Japanese Fashion and Culture"
+        if "japanese fashion and culture" in interest:
+            return "Japanese Lover"
 
-        # Step 2: Fallback to interest scoring with split and normalization
-        raw_interests = re.split(r"[;,]", str(interest).lower())
-        cleaned_phrases = [re.sub(r'[^a-zA-Z0-9\s]', ' ', phrase).strip() for phrase in raw_interests]
+        # Step 2: Check if Q2 (product interest) includes "Beauty and Personal Care"
+        if "beauty and personal care" in product_category:
+            return "Beauty Maven"
 
-        scores = {p: 0 for p in self.weights}
-        for phrase in cleaned_phrases:
-            for persona, keywords in self.weights.items():
-                for kw, w in keywords.items():
-                    if kw in phrase:
-                        scores[persona] += w
-
-        best = max(scores, key=scores.get)
-        return best if scores[best] > 0 else "Unclassified"
+        # Step 3: Default fallback
+        return "Fashion Devotee"
 
     def get_emoji(self, persona):
         return {
