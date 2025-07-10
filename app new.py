@@ -25,7 +25,11 @@ class PersonaEngine:
                 "clothing": 2,
                 "outfit": 2,
                 "trendy": 2,
-                "boutique": 2
+                "boutique": 2,
+                # Entertainment terms (fallback for fashion)
+                "live performance": 1,
+                "entertainment": 1,
+                "digital service": 1
             },
             "Beauty Maven": {
                 # Beauty-specific terms
@@ -94,13 +98,22 @@ class PersonaEngine:
             if score >= self.min_threshold
         ]
         
-        # If no persona meets threshold, assign the highest scoring one
+        # If no persona meets threshold, check for special fallback rules
         if not qualified_personas:
-            max_persona = max(scores, key=scores.get)
-            if scores[max_persona] > 0:
-                qualified_personas = [max_persona]
+            # Special rule: Live performance + entertainment + digital service = Fashion Devotee
+            combined_text = f"{str(interest).lower()} {str(product_category).lower()}"
+            
+            if (("live performance" in combined_text or "entertainment" in combined_text) and 
+                ("digital service" in combined_text or "entertainment and digital" in combined_text)):
+                qualified_personas = ["Fashion Devotee"]
+                scores["Fashion Devotee"] += 2  # Add fallback score
             else:
-                qualified_personas = ["Unclassified"]
+                # Original fallback logic
+                max_persona = max(scores, key=scores.get)
+                if scores[max_persona] > 0:
+                    qualified_personas = [max_persona]
+                else:
+                    qualified_personas = ["Unclassified"]
         
         return qualified_personas, scores
 
@@ -166,7 +179,7 @@ class PersonaEngine:
 
 
 # --- Streamlit UI ---
-st.title("Multi-Persona Customer Profiler")
+st.title("🎭 Multi-Persona Customer Profiler")
 st.markdown("*Captures customers with multiple interests - no one gets left behind!*")
 
 engine = PersonaEngine()
@@ -359,9 +372,11 @@ else:
     st.markdown("""
     - **Multi-persona assignment**: Customers can have multiple personas (e.g., "Fashion Devotee + Beauty Maven")
     - **Enhanced keyword detection**: More comprehensive keyword coverage with weighted scoring
+    - **Smart fallback rules**: Live performance + entertainment + digital service → Fashion Devotee
     - **Threshold-based classification**: Only assigns personas when there's sufficient evidence
     - **Detailed scoring**: Shows match confidence for each assignment
     - **Better coverage**: Captures customers with diverse interests more accurately
+    - **Reduced unclassified**: Special rules to minimize unclassified customers
     """)
 
 st.markdown("---")
