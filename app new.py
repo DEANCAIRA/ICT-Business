@@ -522,7 +522,7 @@ else:
     
     # Show example of improved logic
     st.markdown("### 🆕 Refined Multi-Persona Approach:")
-  
+   
 
 st.markdown("---")
-st.markdown("© 2025 TGC Event Analysis | Enhanced Multi-Persona Classification 🎭")
+st.markdown("© 2025 TGC Event Analysis | Enhanced Multi-Persona Classification ")
