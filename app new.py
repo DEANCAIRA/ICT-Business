@@ -285,22 +285,63 @@ if file:
                 st.dataframe(sample_multi, use_container_width=True)
 
         with tab3:
-            st.subheader("🔍 Customer Analysis & Persona Groups")
+            st.subheader("🔍 Customer Groups & Details")
             
-            # Search and filter options - better layout
-            col1, col2, col3 = st.columns([2, 2, 1])
+            # Search and filter options
+            col1, col2 = st.columns(2)
             with col1:
-                search_name = st.text_input("🔍 Search by name:")
+                search_name = st.text_input("Search by name:")
             with col2:
                 filter_persona = st.selectbox(
-                    "🎭 Filter by persona:",
+                    "Filter by persona:",
                     ["All"] + list(engine.persona_keywords.keys()) + ["Unclassified"]
                 )
-            with col3:
-                st.write("")  # Spacer
-                show_details = st.checkbox("Show full details", value=False)
             
-            # Apply filters
+            # Show customers by persona groups first
+            st.markdown("### 👥 Customers by Persona Groups")
+            
+            # Group by individual personas
+            all_personas = list(engine.persona_keywords.keys()) + ["Unclassified"]
+            
+            for persona in all_personas:
+                # Get customers who have this persona
+                customers_with_persona = [
+                    p for p in engine.personas if persona in p["assigned_personas"]
+                ]
+                
+                if customers_with_persona:
+                    emoji = engine.get_emoji(persona)
+                    
+                    # Apply search filter if provided
+                    if search_name:
+                        filtered_customers = [
+                            p for p in customers_with_persona 
+                            if search_name.lower() in f"{p['first_name']} {p['last_name']}".lower()
+                        ]
+                    else:
+                        filtered_customers = customers_with_persona
+                    
+                    # Only show if we have matches after filtering
+                    if filtered_customers:
+                        with st.expander(f"{emoji} {persona} ({len(filtered_customers)} customers)", expanded=(filter_persona == persona)):
+                            persona_df = pd.DataFrame(filtered_customers)[
+                                ["first_name", "last_name", "city", "persona_string", "interest", "product_interest", "concerts_attended"]
+                            ].rename(columns={
+                                "first_name": "First Name",
+                                "last_name": "Last Name",
+                                "city": "City", 
+                                "persona_string": "All Personas",
+                                "interest": "Interests",
+                                "product_interest": "Product Category",
+                                "concerts_attended": "Concerts Attended"
+                            })
+                            
+                            st.dataframe(persona_df.reset_index(drop=True), use_container_width=True)
+            
+            # Combined detailed view section
+            st.markdown("### 📋 All Customers - Detailed View")
+            
+            # Apply filters for the combined view
             filtered_data = engine.personas.copy()
             
             if search_name:
@@ -315,47 +356,9 @@ if file:
                     if filter_persona in p["assigned_personas"]
                 ]
             
-            # Display results summary
+            # Display results
             if filtered_data:
-                col1, col2 = st.columns([3, 1])
-                with col1:
-                    st.markdown(f"**Showing {len(filtered_data)} customers** {f'for {filter_persona}' if filter_persona != 'All' else ''}")
-                with col2:
-                    # Download button - moved to top right
-                    if show_details:
-                        detailed_df = pd.DataFrame(filtered_data)[
-                            ["emoji", "first_name", "last_name", "city", "persona_string", 
-                             "interest", "product_interest", "concerts_attended", "total_personas"]
-                        ].rename(columns={
-                            "emoji": "🎭",
-                            "first_name": "First Name",
-                            "last_name": "Last Name",
-                            "city": "City",
-                            "persona_string": "Assigned Personas",
-                            "interest": "Interests", 
-                            "product_interest": "Product Category",
-                            "concerts_attended": "Concerts Attended",
-                            "total_personas": "Number of Personas"
-                        })
-                    else:
-                        detailed_df = pd.DataFrame(filtered_data)[
-                            ["emoji", "first_name", "last_name", "city", "persona_string", "total_personas"]
-                        ].rename(columns={
-                            "emoji": "🎭",
-                            "first_name": "First Name",
-                            "last_name": "Last Name", 
-                            "city": "City",
-                            "persona_string": "Assigned Personas",
-                            "total_personas": "# Personas"
-                        })
-                    
-                    csv = detailed_df.to_csv(index=False)
-                    st.download_button(
-                        label="📥 Download CSV",
-                        data=csv,
-                        file_name="persona_analysis_results.csv",
-                        mime="text/csv"
-                    )
+                st.markdown(f"**Showing {len(filtered_data)} customers** {f'for {filter_persona}' if filter_persona != 'All' else ''}")
                 
                 # Show persona breakdown for filtered results
                 if len(filtered_data) > 1:
@@ -365,53 +368,38 @@ if file:
                             filtered_persona_counts[persona] += 1
                     
                     st.markdown("**Persona Breakdown:**")
-                    breakdown_cols = st.columns(len(filtered_persona_counts))
+                    breakdown_cols = st.columns(min(len(filtered_persona_counts), 4))
                     for i, (persona, count) in enumerate(sorted(filtered_persona_counts.items(), key=lambda x: x[1], reverse=True)):
-                        with breakdown_cols[i]:
+                        with breakdown_cols[i % 4]:
                             emoji = engine.get_emoji(persona)
                             st.metric(f"{emoji} {persona}", count)
                 
-                st.markdown("---")
+                # Display detailed customer table
+                detailed_df = pd.DataFrame(filtered_data)[
+                    ["emoji", "first_name", "last_name", "city", "persona_string", 
+                     "interest", "product_interest", "concerts_attended", "total_personas"]
+                ].rename(columns={
+                    "emoji": "🎭",
+                    "first_name": "First Name",
+                    "last_name": "Last Name",
+                    "city": "City",
+                    "persona_string": "Assigned Personas",
+                    "interest": "Interests", 
+                    "product_interest": "Product Category",
+                    "concerts_attended": "Concerts Attended",
+                    "total_personas": "Number of Personas"
+                }).sort_values("Number of Personas", ascending=False)
                 
-                # Display customer table with conditional columns
-                if show_details:
-                    # Full details view
-                    detailed_df_display = detailed_df.sort_values("# Personas" if "# Personas" in detailed_df.columns else "Number of Personas", ascending=False)
-                    st.dataframe(
-                        detailed_df_display.reset_index(drop=True), 
-                        use_container_width=True,
-                        height=400
-                    )
-                else:
-                    # Compact view
-                    compact_df = detailed_df.sort_values("# Personas", ascending=False)
-                    st.dataframe(
-                        compact_df.reset_index(drop=True), 
-                        use_container_width=True,
-                        height=400,
-                        column_config={
-                            "🎭": st.column_config.TextColumn("🎭", width="small"),
-                            "First Name": st.column_config.TextColumn("First Name", width="medium"),
-                            "Last Name": st.column_config.TextColumn("Last Name", width="medium"),
-                            "City": st.column_config.TextColumn("City", width="medium"),
-                            "Assigned Personas": st.column_config.TextColumn("Assigned Personas", width="large"),
-                            "# Personas": st.column_config.NumberColumn("# Personas", width="small")
-                        }
-                    )
-                    
-                    if st.button("🔍 Show sample detailed interests"):
-                        st.markdown("**Sample customer interests:**")
-                        sample_detailed = pd.DataFrame(filtered_data[:5])[
-                            ["first_name", "last_name", "persona_string", "interest", "product_interest"]
-                        ].rename(columns={
-                            "first_name": "Name",
-                            "last_name": "Surname", 
-                            "persona_string": "Personas",
-                            "interest": "Interests",
-                            "product_interest": "Product Category"
-                        })
-                        st.dataframe(sample_detailed, use_container_width=True)
-                        
+                st.dataframe(detailed_df.reset_index(drop=True), use_container_width=True)
+                
+                # Download button
+                csv = detailed_df.to_csv(index=False)
+                st.download_button(
+                    label="📥 Download filtered results as CSV",
+                    data=csv,
+                    file_name="persona_analysis_results.csv",
+                    mime="text/csv"
+                )
             else:
                 st.info("No customers match your filter criteria.")
 
