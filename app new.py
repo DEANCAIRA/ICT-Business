@@ -77,6 +77,18 @@ class PersonaEngine:
     def load_data(self, file):
         self.df = pd.read_csv(file)
         self.df.columns = self.df.columns.str.strip().str.lower()
+        
+        # Debug: Show available columns
+        st.write("🔍 **Debug Info - Available Columns:**", list(self.df.columns))
+        
+        # Debug: Show gender column info if it exists
+        if 'gender' in self.df.columns:
+            st.write("✅ **Gender Column Found!**")
+            st.write("Gender values:", self.df['gender'].value_counts().to_dict())
+            st.write("Sample gender data:", self.df['gender'].head().tolist())
+        else:
+            st.warning("❌ **Gender column not found!** Available columns: " + ", ".join(self.df.columns))
+        
         return not self.df.empty
 
     def assign_personas(self, interest: str, product_category: str):
