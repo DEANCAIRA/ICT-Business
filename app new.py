@@ -297,51 +297,27 @@ if file:
                     ["All"] + list(engine.persona_keywords.keys()) + ["Unclassified"]
                 )
             
-            # Show customers by persona groups first
-            st.markdown("### 👥 Customers by Persona Groups")
+        with tab3:
+            st.subheader("🔍 Customer Analytics & Persona Insights")
             
-            # Group by individual personas
-            all_personas = list(engine.persona_keywords.keys()) + ["Unclassified"]
+            # Professional search and filter bar
+            with st.container():
+                col1, col2, col3 = st.columns([3, 2, 1])
+                with col1:
+                    search_name = st.text_input("🔍 Search customers by name", placeholder="Enter first or last name...")
+                with col2:
+                    filter_persona = st.selectbox(
+                        "🎭 Filter by persona",
+                        ["All Personas"] + list(engine.persona_keywords.keys()) + ["Unclassified"],
+                        help="Filter customers by their assigned persona types"
+                    )
+                with col3:
+                    st.markdown("&nbsp;")  # Spacing
+                    view_mode = st.radio("View", ["Cards", "Table"], horizontal=True)
             
-            for persona in all_personas:
-                # Get customers who have this persona
-                customers_with_persona = [
-                    p for p in engine.personas if persona in p["assigned_personas"]
-                ]
-                
-                if customers_with_persona:
-                    emoji = engine.get_emoji(persona)
-                    
-                    # Apply search filter if provided
-                    if search_name:
-                        filtered_customers = [
-                            p for p in customers_with_persona 
-                            if search_name.lower() in f"{p['first_name']} {p['last_name']}".lower()
-                        ]
-                    else:
-                        filtered_customers = customers_with_persona
-                    
-                    # Only show if we have matches after filtering
-                    if filtered_customers:
-                        with st.expander(f"{emoji} {persona} ({len(filtered_customers)} customers)", expanded=(filter_persona == persona)):
-                            persona_df = pd.DataFrame(filtered_customers)[
-                                ["first_name", "last_name", "city", "persona_string", "interest", "product_interest", "concerts_attended"]
-                            ].rename(columns={
-                                "first_name": "First Name",
-                                "last_name": "Last Name",
-                                "city": "City", 
-                                "persona_string": "All Personas",
-                                "interest": "Interests",
-                                "product_interest": "Product Category",
-                                "concerts_attended": "Concerts Attended"
-                            })
-                            
-                            st.dataframe(persona_df.reset_index(drop=True), use_container_width=True)
+            st.markdown("---")
             
-            # Combined detailed view section
-            st.markdown("### 📋 All Customers - Clustered by Persona Combinations")
-            
-            # Apply filters for the combined view
+            # Apply filters
             filtered_data = engine.personas.copy()
             
             if search_name:
@@ -350,7 +326,7 @@ if file:
                     if search_name.lower() in f"{p['first_name']} {p['last_name']}".lower()
                 ]
             
-            if filter_persona != "All":
+            if filter_persona != "All Personas":
                 filtered_data = [
                     p for p in filtered_data 
                     if filter_persona in p["assigned_personas"]
@@ -358,9 +334,29 @@ if file:
             
             # Display results
             if filtered_data:
-                st.markdown(f"**Showing {len(filtered_data)} customers** {f'for {filter_persona}' if filter_persona != 'All' else ''}")
+                # Professional header with key metrics
+                col1, col2, col3, col4 = st.columns(4)
+                with col1:
+                    st.metric("📊 Total Customers", f"{len(filtered_data):,}")
+                with col2:
+                    multi_count = len([p for p in filtered_data if len(p["assigned_personas"]) > 1])
+                    st.metric("🎯 Multi-Persona", f"{multi_count:,}")
+                with col3:
+                    avg_personas = sum(len(p["assigned_personas"]) for p in filtered_data) / len(filtered_data)
+                    st.metric("📈 Avg Personas", f"{avg_personas:.1f}")
+                with col4:
+                    # Calculate total reach per persona
+                    persona_reach = defaultdict(int)
+                    for person in filtered_data:
+                        for persona in person["assigned_personas"]:
+                            persona_reach[persona] += 1
+                    top_persona = max(persona_reach.items(), key=lambda x: x[1]) if persona_reach else ("None", 0)
+                    emoji = engine.get_emoji(top_persona[0])
+                    st.metric(f"{emoji} Top Persona", f"{top_persona[1]:,}")
                 
-                # Show persona combination statistics
+                st.markdown("---")
+                
+                # Persona combination analysis
                 combination_counts = defaultdict(int)
                 combination_data = defaultdict(list)
                 
@@ -369,99 +365,180 @@ if file:
                     combination_counts[combo] += 1
                     combination_data[combo].append(person)
                 
-                # Display combination metrics
-                st.markdown("**Persona Combination Breakdown:**")
-                combo_cols = st.columns(min(len(combination_counts), 4))
-                for i, (combo, count) in enumerate(sorted(combination_counts.items(), key=lambda x: x[1], reverse=True)):
-                    with combo_cols[i % 4]:
-                        # Create emoji string for the combination
+                # Professional persona reach overview
+                st.markdown("### 📊 Persona Reach Overview")
+                persona_reach = defaultdict(int)
+                for person in filtered_data:
+                    for persona in person["assigned_personas"]:
+                        persona_reach[persona] += 1
+                
+                reach_cols = st.columns(len(persona_reach) if persona_reach else 1)
+                for i, (persona, count) in enumerate(sorted(persona_reach.items(), key=lambda x: x[1], reverse=True)):
+                    with reach_cols[i]:
+                        emoji = engine.get_emoji(persona)
+                        percentage = (count / len(filtered_data)) * 100
+                        st.metric(
+                            f"{emoji} {persona}",
+                            f"{count:,}",
+                            f"{percentage:.1f}% reach"
+                        )
+                
+                st.markdown("### 🎯 Customer Segments by Persona Combinations")
+                
+                # Sort combinations by strategic value (multi-persona first, then by count)
+                def sort_key(item):
+                    combo, count = item
+                    persona_count = len(combo.split(" + "))
+                    return (-persona_count, -count)  # Multi-persona first, then highest count
+                
+                sorted_combinations = sorted(combination_counts.items(), key=sort_key)
+                
+                if view_mode == "Cards":
+                    # Professional card layout
+                    for combo, count in sorted_combinations:
                         personas = combo.split(" + ")
                         emoji_combo = "".join([engine.get_emoji(p) for p in personas])
-                        st.metric(f"{emoji_combo} {combo}", count)
-                
-                # Display customers clustered by persona combinations
-                st.markdown("**Customers by Persona Combinations:**")
-                
-                # Sort combinations by count (highest first)
-                sorted_combinations = sorted(combination_counts.items(), key=lambda x: x[1], reverse=True)
-                
-                for combo, count in sorted_combinations:
-                    personas = combo.split(" + ")
-                    emoji_combo = "".join([engine.get_emoji(p) for p in personas])
-                    
-                    with st.expander(f"{emoji_combo} {combo} ({count} customers)", expanded=(count <= 20)):  # Auto-expand small groups
-                        combo_customers = combination_data[combo]
                         
-                        combo_df = pd.DataFrame(combo_customers)[
-                            ["first_name", "last_name", "city", "interest", "product_interest", "concerts_attended"]
+                        # Determine card color based on persona count
+                        if len(personas) >= 3:
+                            card_color = "🔥"  # VIP customers
+                        elif len(personas) == 2:
+                            card_color = "⭐"  # Premium customers
+                        else:
+                            card_color = "📌"  # Standard customers
+                        
+                        with st.expander(
+                            f"{card_color} {emoji_combo} **{combo}** • {count:,} customers ({(count/len(filtered_data)*100):.1f}%)",
+                            expanded=(count <= 30 or len(personas) >= 3)  # Auto-expand VIP and small segments
+                        ):
+                            combo_customers = combination_data[combo]
+                            
+                            # Quick insights row
+                            insight_col1, insight_col2, insight_col3 = st.columns(3)
+                            with insight_col1:
+                                city_dist = pd.Series([p["city"] for p in combo_customers]).value_counts()
+                                top_city = city_dist.index[0] if len(city_dist) > 0 else "N/A"
+                                st.metric("🏙️ Top City", top_city, f"{city_dist.iloc[0]} customers" if len(city_dist) > 0 else "")
+                            
+                            with insight_col2:
+                                concert_dist = pd.Series([p["concerts_attended"] for p in combo_customers]).value_counts()
+                                top_engagement = concert_dist.index[0] if len(concert_dist) > 0 else "N/A"
+                                st.metric("🎵 Top Engagement", top_engagement, f"{concert_dist.iloc[0]} customers" if len(concert_dist) > 0 else "")
+                            
+                            with insight_col3:
+                                avg_interests = sum(len(str(p["interest"]).split(",")) for p in combo_customers) / len(combo_customers)
+                                st.metric("💡 Avg Interests", f"{avg_interests:.1f}", "per customer")
+                            
+                            # Customer table
+                            combo_df = pd.DataFrame(combo_customers)[
+                                ["first_name", "last_name", "city", "interest", "product_interest", "concerts_attended"]
+                            ].rename(columns={
+                                "first_name": "First Name",
+                                "last_name": "Last Name",
+                                "city": "City",
+                                "interest": "Interests", 
+                                "product_interest": "Product Category",
+                                "concerts_attended": "Concert Attendance"
+                            })
+                            
+                            st.dataframe(
+                                combo_df.reset_index(drop=True), 
+                                use_container_width=True,
+                                hide_index=True
+                            )
+                else:
+                    # Professional table view
+                    st.markdown("**Customer Segments Summary**")
+                    
+                    # Create summary table
+                    summary_data = []
+                    for combo, count in sorted_combinations:
+                        personas = combo.split(" + ")
+                        emoji_combo = "".join([engine.get_emoji(p) for p in personas])
+                        segment_type = "VIP" if len(personas) >= 3 else "Premium" if len(personas) == 2 else "Standard"
+                        percentage = (count / len(filtered_data)) * 100
+                        
+                        summary_data.append({
+                            "🎭": emoji_combo,
+                            "Segment": combo,
+                            "Type": segment_type,
+                            "Customers": f"{count:,}",
+                            "Percentage": f"{percentage:.1f}%"
+                        })
+                    
+                    summary_df = pd.DataFrame(summary_data)
+                    st.dataframe(summary_df, use_container_width=True, hide_index=True)
+                    
+                    # Detailed customer table
+                    with st.expander("📋 Detailed Customer List", expanded=False):
+                        detailed_df = pd.DataFrame(filtered_data)[
+                            ["first_name", "last_name", "city", "persona_string", 
+                             "interest", "product_interest", "concerts_attended", "total_personas"]
                         ].rename(columns={
                             "first_name": "First Name",
                             "last_name": "Last Name",
                             "city": "City",
+                            "persona_string": "Personas",
                             "interest": "Interests", 
                             "product_interest": "Product Category",
-                            "concerts_attended": "Concerts Attended"
-                        })
+                            "concerts_attended": "Concert Attendance",
+                            "total_personas": "# Personas"
+                        }).sort_values(["# Personas", "Personas"], ascending=[False, True])
                         
-                        st.dataframe(combo_df.reset_index(drop=True), use_container_width=True)
-                        
-                        # Show quick stats for this combination
-                        col1, col2 = st.columns(2)
-                        with col1:
-                            city_dist = pd.Series([p["city"] for p in combo_customers]).value_counts().head(3)
-                            st.markdown("**Top Cities:**")
-                            for city, cnt in city_dist.items():
-                                st.write(f"• {city}: {cnt}")
-                        with col2:
-                            concert_dist = pd.Series([p["concerts_attended"] for p in combo_customers]).value_counts().head(3)
-                            st.markdown("**Concert Attendance:**")
-                            for concerts, cnt in concert_dist.items():
-                                st.write(f"• {concerts}: {cnt}")
+                        st.dataframe(detailed_df.reset_index(drop=True), use_container_width=True, hide_index=True)
                 
-                # Overall summary table (collapsed by default)
-                with st.expander("📊 Complete Summary Table", expanded=False):
+                # Professional download section
+                st.markdown("---")
+                col1, col2, col3 = st.columns([2, 1, 1])
+                with col1:
+                    st.markdown("**📥 Export Data**")
+                with col2:
+                    # Summary export
+                    summary_data = []
+                    for combo, count in sorted_combinations:
+                        personas = combo.split(" + ")
+                        segment_type = "VIP" if len(personas) >= 3 else "Premium" if len(personas) == 2 else "Standard"
+                        percentage = (count / len(filtered_data)) * 100
+                        summary_data.append({
+                            "Segment": combo,
+                            "Type": segment_type,
+                            "Customers": count,
+                            "Percentage": round(percentage, 1)
+                        })
+                    
+                    summary_csv = pd.DataFrame(summary_data).to_csv(index=False)
+                    st.download_button(
+                        label="📊 Summary CSV",
+                        data=summary_csv,
+                        file_name="persona_segments_summary.csv",
+                        mime="text/csv"
+                    )
+                
+                with col3:
+                    # Detailed export
                     detailed_df = pd.DataFrame(filtered_data)[
-                        ["emoji", "first_name", "last_name", "city", "persona_string", 
+                        ["first_name", "last_name", "city", "persona_string", 
                          "interest", "product_interest", "concerts_attended", "total_personas"]
                     ].rename(columns={
-                        "emoji": "🎭",
                         "first_name": "First Name",
                         "last_name": "Last Name",
                         "city": "City",
-                        "persona_string": "Assigned Personas",
+                        "persona_string": "Personas",
                         "interest": "Interests", 
                         "product_interest": "Product Category",
-                        "concerts_attended": "Concerts Attended",
+                        "concerts_attended": "Concert Attendance",
                         "total_personas": "Number of Personas"
-                    }).sort_values(["Number of Personas", "Assigned Personas"], ascending=[False, True])
+                    })
                     
-                    st.dataframe(detailed_df.reset_index(drop=True), use_container_width=True)
-                
-                # Download button
-                detailed_df = pd.DataFrame(filtered_data)[
-                    ["emoji", "first_name", "last_name", "city", "persona_string", 
-                     "interest", "product_interest", "concerts_attended", "total_personas"]
-                ].rename(columns={
-                    "emoji": "🎭",
-                    "first_name": "First Name",
-                    "last_name": "Last Name",
-                    "city": "City",
-                    "persona_string": "Assigned Personas",
-                    "interest": "Interests", 
-                    "product_interest": "Product Category",
-                    "concerts_attended": "Concerts Attended",
-                    "total_personas": "Number of Personas"
-                })
-                
-                csv = detailed_df.to_csv(index=False)
-                st.download_button(
-                    label="📥 Download filtered results as CSV",
-                    data=csv,
-                    file_name="persona_analysis_results.csv",
-                    mime="text/csv"
-                )
+                    detailed_csv = detailed_df.to_csv(index=False)
+                    st.download_button(
+                        label="📋 Detailed CSV",
+                        data=detailed_csv,
+                        file_name="customer_details.csv",
+                        mime="text/csv"
+                    )
             else:
-                st.info("No customers match your filter criteria.")
+                st.info("🔍 No customers match your search criteria. Try adjusting your filters.")
 
     else:
         st.error("❌ Could not read uploaded CSV. Please check formatting.")
@@ -473,4 +550,4 @@ else:
     
 
 st.markdown("---")
-st.markdown("© 2025 TGC Event Analysis | Enhanced Multi-Persona Classification 🎭")
+st.markdown("© 2025 TGC Event Analysis | Enhanced Multi-Persona Classification")
