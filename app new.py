@@ -17,6 +17,7 @@ class PersonaEngine:
             "Fashion Devotee": {
                 # Fashion-specific phrases (full terms only)
                 "fashion shows": 1,
+                "fashion shows and designer collections": 1,
                 "designer collections": 1,
                 "fashion and lifestyle": 1,
                 "live performances": 1,
@@ -24,6 +25,9 @@ class PersonaEngine:
                 "entertainment": 1,
                 "digital services": 1,
                 "entertainment and digital services": 1,
+                "shopping and brand booths": 1,
+                "shopping": 1,
+                "brand booths": 1,
                 "fashion": 1,
                 "style": 1,
                 "designer": 1,
@@ -50,12 +54,10 @@ class PersonaEngine:
                 "japanese fashion and culture": 1,
                 "japanese fashion": 1,
                 "japanese culture": 1,
-                "kol influencer appearances": 1,
                 "japanese": 1,
                 "japan": 1,
                 "anime": 1,
                 "manga": 1,
-                "kol": 1,
                 "jpop": 1,
                 "kawaii": 1,
                 "otaku": 1,
@@ -71,7 +73,8 @@ class PersonaEngine:
             "tgc product",
             "voucher",
             "vouchers",
-            "exclusive"
+            "exclusive",
+            "kol influencer appearances"  # Too generic - doesn't indicate specific persona
         ]
         
         # Minimum threshold for persona assignment (simplified)
@@ -84,7 +87,12 @@ class PersonaEngine:
 
     def calculate_persona_scores(self, interest: str, product_category: str):
         """Calculate scores for all personas - using full phrases and excluding certain terms"""
-        interest_text = str(interest).lower()
+        # Handle list format (convert to string if needed)
+        if isinstance(interest, list):
+            interest_text = ", ".join(str(item) for item in interest).lower()
+        else:
+            interest_text = str(interest).lower()
+            
         product_text = str(product_category).lower()
         
         # Remove excluded terms from scoring (but keep original text for display)
@@ -104,25 +112,29 @@ class PersonaEngine:
         
         scores = {persona: 0 for persona in self.persona_keywords}
         
-        # Score using full phrases - prioritize longer phrases first
+        # Create copies for phrase removal tracking
+        interest_remaining = interest_clean
+        product_remaining = product_clean
+        
+        # Score using full phrases - prioritize longer phrases first to avoid double counting
         for persona, keywords in self.persona_keywords.items():
-            # Sort keywords by length (longest first) to match full phrases before individual words
+            # Sort keywords by length (longest first) to match full phrases before sub-phrases
             sorted_keywords = sorted(keywords.keys(), key=len, reverse=True)
             
             for keyword in sorted_keywords:
-                # Count in interest field
-                interest_count = len(re.findall(r'\b' + re.escape(keyword) + r'\b', interest_clean))
-                scores[persona] += interest_count
+                # Count in interest field (only if not already matched by longer phrase)
+                interest_matches = len(re.findall(r'\b' + re.escape(keyword) + r'\b', interest_remaining))
+                if interest_matches > 0:
+                    scores[persona] += interest_matches
+                    # Remove matched phrases to prevent double counting
+                    interest_remaining = re.sub(r'\b' + re.escape(keyword) + r'\b', '', interest_remaining)
                 
-                # Count in product category  
-                product_count = len(re.findall(r'\b' + re.escape(keyword) + r'\b', product_clean))
-                scores[persona] += product_count
-                
-                # Remove matched phrases to avoid double counting
-                if interest_count > 0:
-                    interest_clean = re.sub(r'\b' + re.escape(keyword) + r'\b', '', interest_clean)
-                if product_count > 0:
-                    product_clean = re.sub(r'\b' + re.escape(keyword) + r'\b', '', product_clean)
+                # Count in product category
+                product_matches = len(re.findall(r'\b' + re.escape(keyword) + r'\b', product_remaining))
+                if product_matches > 0:
+                    scores[persona] += product_matches
+                    # Remove matched phrases to prevent double counting
+                    product_remaining = re.sub(r'\b' + re.escape(keyword) + r'\b', '', product_remaining)
         
         return scores
 
@@ -142,6 +154,10 @@ class PersonaEngine:
             interest_text = str(interest).lower()
             product_text = str(product_category).lower()
             combined_text = f"{interest_text} {product_text}"
+            
+            # Remove excluded terms for fallback rule checking too
+            for excluded_term in self.excluded_terms:
+                combined_text = combined_text.replace(excluded_term, "")
             
             if (("live performance" in combined_text or "entertainment" in combined_text) and 
                 ("digital service" in combined_text or "entertainment and digital" in combined_text)):
@@ -290,6 +306,11 @@ if file:
             with col1:
                 st.subheader("Individual Persona Distribution")
                 
+                # Add validation note
+                st.info("💡 **Validation Note**: High Beauty Maven percentage could indicate:\n"
+                       "• Genuine beauty interest from TGC attendees\n"  
+                       "• Cross-event traffic from nearby beauty events\n"
+                       "• Natural overlap between fashion and beauty interests")
                 
                 fig_pie = px.pie(
                     names=list(persona_stats.keys()),
@@ -500,8 +521,8 @@ else:
     st.info("👈 Upload your customer CSV file to begin persona analysis.")
     
     # Show example of improved logic
-    st.markdown("### 🆕 Simplified Multi-Persona Approach:")
-    
+    st.markdown("### 🆕 Refined Multi-Persona Approach:")
+  
 
 st.markdown("---")
-st.markdown("© 2025 TGC Event Analysis | Enhanced Multi-Persona Classification")
+st.markdown("© 2025 TGC Event Analysis | Enhanced Multi-Persona Classification 🎭")
