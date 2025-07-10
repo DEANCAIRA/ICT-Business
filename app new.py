@@ -371,12 +371,11 @@ else:
     st.markdown("### 🆕 Improved Features:")
     st.markdown("""
     - **Multi-persona assignment**: Customers can have multiple personas (e.g., "Fashion Devotee + Beauty Maven")
-    - **keyword detection**: More comprehensive keyword coverage with weighted scoring
+    - **keyword detection**: Weighted scoring
     - **fallback rules**: Live performance + entertainment + digital service → Fashion Devotee
     - **Threshold-based classification**: Only assigns personas when there's sufficient evidence
     - **Detailed scoring**: Shows match confidence for each assignment
     - **Better coverage**: Captures customers with diverse interests more accurately
-    - **Reduced unclassified**: Special rules to minimize unclassified customers
     """)
 
 st.markdown("---")
