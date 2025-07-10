@@ -5,7 +5,7 @@ from collections import Counter, defaultdict
 import plotly.express as px
 import plotly.graph_objects as go
 
-st.set_page_config(page_title="Multi-Persona Profiler", layout="wide")
+st.set_page_config(page_title="Persona Profiler", layout="wide")
 
 class PersonaEngine:
     def __init__(self):
@@ -77,7 +77,7 @@ class PersonaEngine:
             "kol influencer appearances"  # Too generic - doesn't indicate specific persona
         ]
         
-        # Minimum threshold for persona assignment (simplified)
+        # Minimum threshold for persona assignment (not needed for presence-based)
         self.min_threshold = 1
 
     def load_data(self, file):
@@ -139,39 +139,49 @@ class PersonaEngine:
         return scores
 
     def assign_personas(self, interest: str, product_category: str):
-        """Assign multiple personas based on scores above threshold"""
-        scores = self.calculate_persona_scores(interest, product_category)
-        
-        # Get personas that meet the minimum threshold
-        qualified_personas = [
-            persona for persona, score in scores.items() 
-            if score >= self.min_threshold
-        ]
-        
-        # If no persona meets threshold, check for special fallback rules
-        if not qualified_personas:
-            # Special rule: Live performance + entertainment + digital service = Fashion Devotee
+        """Simple presence-based persona assignment - if keywords found, assign persona"""
+        # Handle list format (convert to string if needed)
+        if isinstance(interest, list):
+            interest_text = ", ".join(str(item) for item in interest).lower()
+        else:
             interest_text = str(interest).lower()
-            product_text = str(product_category).lower()
-            combined_text = f"{interest_text} {product_text}"
             
-            # Remove excluded terms for fallback rule checking too
-            for excluded_term in self.excluded_terms:
-                combined_text = combined_text.replace(excluded_term, "")
-            
-            if (("live performance" in combined_text or "entertainment" in combined_text) and 
-                ("digital service" in combined_text or "entertainment and digital" in combined_text)):
-                qualified_personas = ["Fashion Devotee"]
-                scores["Fashion Devotee"] += 2  # Add fallback score
-            else:
-                # Original fallback logic
-                max_persona = max(scores, key=scores.get)
-                if scores[max_persona] > 0:
-                    qualified_personas = [max_persona]
-                else:
-                    qualified_personas = ["Unclassified"]
+        product_text = str(product_category).lower()
         
-        return qualified_personas, scores
+        # Remove excluded terms from analysis
+        combined_text = f"{interest_text} {product_text}"
+        for excluded_term in self.excluded_terms:
+            combined_text = combined_text.replace(excluded_term, "")
+        
+        # Clean text
+        combined_clean = re.sub(r'[^\w\s]', ' ', combined_text)
+        combined_clean = re.sub(r'\s+', ' ', combined_clean).strip()
+        
+        assigned_personas = []
+        simple_scores = {persona: 0 for persona in self.persona_keywords}
+        
+        # Simple check: if ANY keyword from a persona is found, assign that persona
+        for persona, keywords in self.persona_keywords.items():
+            persona_found = False
+            for keyword in keywords.keys():
+                if re.search(r'\b' + re.escape(keyword) + r'\b', combined_clean):
+                    persona_found = True
+                    simple_scores[persona] = 1  # Just mark as present
+                    break  # Found one keyword, that's enough
+            
+            if persona_found:
+                assigned_personas.append(persona)
+        
+        # Fallback rule if no personas found
+        if not assigned_personas:
+            if (("live performance" in combined_clean or "entertainment" in combined_clean) and 
+                ("digital service" in combined_clean or "entertainment and digital" in combined_clean)):
+                assigned_personas = ["Fashion Devotee"]
+                simple_scores["Fashion Devotee"] = 1
+            else:
+                assigned_personas = ["Unclassified"]
+        
+        return assigned_personas, simple_scores
 
     def get_emoji(self, persona):
         return {
@@ -188,7 +198,7 @@ class PersonaEngine:
             product_category = row.get("product category", "")
             concerts = row.get("concerts attended", "")
             
-            assigned_personas, scores = self.assign_personas(interest, product_category)
+            assigned_personas, simple_scores = self.assign_personas(interest, product_category)
             
             # Create persona string representation
             persona_str = " + ".join(assigned_personas)
@@ -206,8 +216,8 @@ class PersonaEngine:
                 "assigned_personas": assigned_personas,
                 "persona_string": persona_str,
                 "emoji": emoji_str,
-                "scores": scores,
-                "total_score": sum(scores.values())
+                "presence_scores": simple_scores,
+                "total_personas": len(assigned_personas)
             })
 
     def to_df(self):
@@ -438,7 +448,7 @@ if file:
                     st.markdown(f"### {emoji} {persona} ({len(customers_with_persona)} customers)")
                     
                     persona_df = pd.DataFrame(customers_with_persona)[
-                        ["first_name", "last_name", "city", "persona_string", "interest", "product_interest", "total_score"]
+                        ["first_name", "last_name", "city", "persona_string", "interest", "product_interest", "total_personas"]
                     ].rename(columns={
                         "first_name": "First Name",
                         "last_name": "Last Name",
@@ -446,8 +456,8 @@ if file:
                         "persona_string": "All Personas",
                         "interest": "Interests",
                         "product_interest": "Product Category",
-                        "total_score": "Match Score"
-                    }).sort_values("Match Score", ascending=False)
+                        "total_personas": "Number of Personas"
+                    }).sort_values("Number of Personas", ascending=False)
                     
                     st.dataframe(persona_df.reset_index(drop=True), use_container_width=True)
 
@@ -483,7 +493,7 @@ if file:
             if filtered_data:
                 detailed_df = pd.DataFrame(filtered_data)[
                     ["emoji", "first_name", "last_name", "city", "persona_string", 
-                     "interest", "product_interest", "concerts_attended", "total_score"]
+                     "interest", "product_interest", "concerts_attended", "total_personas"]
                 ].rename(columns={
                     "emoji": "🎭",
                     "first_name": "First Name",
@@ -493,8 +503,8 @@ if file:
                     "interest": "Interests", 
                     "product_interest": "Product Category",
                     "concerts_attended": "Concerts Attended",
-                    "total_score": "Match Score"
-                }).sort_values("Match Score", ascending=False)
+                    "total_personas": "Number of Personas"
+                }).sort_values("Number of Personas", ascending=False)
                 
                 st.dataframe(detailed_df.reset_index(drop=True), use_container_width=True)
                 
@@ -515,8 +525,8 @@ else:
     st.info("👈 Upload your customer CSV file to begin persona analysis.")
     
     # Show example of improved logic
-    st.markdown("### 🆕 Refined Multi-Persona Approach:")
+    st.markdown("### 🆕 Simplified Presence-Based Approach:")
    
 
 st.markdown("---")
-st.markdown("© 2025 TGC Event Analysis | Enhanced Multi-Persona Classification ")
+st.markdown("© 2025 TGC Event Analysis | Enhanced Multi-Persona Classification 🎭")
