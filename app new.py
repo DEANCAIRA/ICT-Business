@@ -189,8 +189,6 @@ class PersonaEngine:
                 "first_name": row.get("first name", ""),
                 "last_name": row.get("last name", ""),
                 "city": row.get("city", ""),
-                "gender": row.get("gender", "Unknown"),  # Add gender field
-                "age": row.get("age", ""),  # Add age field
                 "interest": interest,
                 "product_interest": product_category,
                 "concerts_attended": concerts,
@@ -221,8 +219,7 @@ class PersonaEngine:
         return self.to_df()["city"].value_counts()
 
     def get_gender_stats(self):
-        df = self.to_df()
-        return df["gender"].value_counts()
+        return self.to_df()["gender"].value_counts()
 
     def get_persona_portions(self):
         """Calculate persona portions including multi-persona breakdown"""
@@ -243,8 +240,6 @@ class PersonaEngine:
                 'percentage': (count / total_customers) * 100
             }
         
-        return persona_portions
-
     def get_multi_persona_users(self):
         return [p for p in self.personas if len(p["assigned_personas"]) > 1]
 
@@ -289,7 +284,6 @@ if file:
         persona_stats = engine.get_persona_stats()
         combination_stats = engine.get_combination_stats()
         city_counts = engine.get_city_stats()
-        gender_stats = engine.get_gender_stats()
         multi_persona_users = engine.get_multi_persona_users()
         monetization_insights = engine.get_monetization_insights()
 
@@ -517,143 +511,30 @@ if file:
                     st.info("💡 **Tip:** Ensure EC data includes customer email/phone to match with persona data")
 
         with tab4:
-            st.subheader("📊 Persona Distribution Analysis")
-            
-            # Create three columns for the pie charts
-            col1, col2, col3 = st.columns(3)
+            col1, col2 = st.columns(2)
 
             with col1:
-                # Persona Distribution
-                st.markdown("### Persona Distribution")
+                st.subheader("Persona Distribution")
                 fig_pie = px.pie(
                     names=list(persona_stats.keys()),
                     values=list(persona_stats.values()),
-                    title="Customer Personas",
-                    color_discrete_map={
-                        'Fashion Devotee': '#FF6B6B',
-                        'Beauty Maven': '#4ECDC4',
-                        'Japanese Lover': '#45B7D1',
-                        'Unclassified': '#95A99C'
-                    }
+                    title="Customer Personas for Content Strategy"
                 )
-                fig_pie.update_traces(textposition='inside', textinfo='percent+label')
                 st.plotly_chart(fig_pie, use_container_width=True)
 
             with col2:
-                # Gender Distribution
-                st.markdown("### Gender Distribution")
-                if not gender_stats.empty:
-                    fig_gender = px.pie(
-                        names=gender_stats.index,
-                        values=gender_stats.values,
-                        title="Customer Gender",
-                        color_discrete_map={
-                            'Male': '#4169E1',
-                            'Female': '#FF69B4',
-                            'M': '#4169E1',
-                            'F': '#FF69B4',
-                            'Unknown': '#95A99C'
-                        }
-                    )
-                    fig_gender.update_traces(textposition='inside', textinfo='percent+label')
-                    st.plotly_chart(fig_gender, use_container_width=True)
-                else:
-                    st.info("No gender data available")
-
-            with col3:
-                # Multi-Persona Analysis
-                st.markdown("### Interest Diversity")
+                st.subheader("Multi-Persona Analysis")
                 single_persona = len([p for p in engine.personas if len(p["assigned_personas"]) == 1])
                 multi_persona = len(multi_persona_users)
                 
                 fig_multi = px.pie(
                     names=["Single Interest", "Multi-Interest"],
                     values=[single_persona, multi_persona],
-                    title="Customer Interest Types",
-                    color_discrete_map={
-                        'Single Interest': '#FDB462',
-                        'Multi-Interest': '#80B1D3'
-                    }
+                    title="Customer Interest Diversity (Cross-sell Potential)"
                 )
-                fig_multi.update_traces(textposition='inside', textinfo='percent+label')
                 st.plotly_chart(fig_multi, use_container_width=True)
 
-            # Additional insights row
-            st.markdown("### 📊 Deep Dive Analysis")
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                # Persona Combinations
-                st.markdown("**Top Persona Combinations**")
-                combo_df = pd.DataFrame([
-                    {"Combination": combo, "Count": count}
-                    for combo, count in combination_stats.most_common(10)
-                ])
-                fig_combo = px.bar(
-                    combo_df, 
-                    x="Count", 
-                    y="Combination", 
-                    orientation='h',
-                    title="Most Common Persona Combinations",
-                    color="Count",
-                    color_continuous_scale="Blues"
-                )
-                fig_combo.update_layout(yaxis={'categoryorder':'total ascending'})
-                st.plotly_chart(fig_combo, use_container_width=True)
-            
-            with col2:
-                # Gender by Persona
-                st.markdown("**Gender Distribution by Persona**")
-                
-                # Create gender-persona crosstab
-                gender_persona_data = []
-                for person in engine.personas:
-                    for persona in person["assigned_personas"]:
-                        gender_persona_data.append({
-                            'Gender': person['gender'],
-                            'Persona': persona
-                        })
-                
-                if gender_persona_data:
-                    gender_persona_df = pd.DataFrame(gender_persona_data)
-                    gender_persona_counts = gender_persona_df.groupby(['Persona', 'Gender']).size().reset_index(name='Count')
-                    
-                    fig_gender_persona = px.bar(
-                        gender_persona_counts,
-                        x='Persona',
-                        y='Count',
-                        color='Gender',
-                        title='Gender Distribution Across Personas',
-                        color_discrete_map={
-                            'Male': '#4169E1',
-                            'Female': '#FF69B4',
-                            'M': '#4169E1',
-                            'F': '#FF69B4',
-                            'Unknown': '#95A99C'
-                        }
-                    )
-                    st.plotly_chart(fig_gender_persona, use_container_width=True)
-
-            # Multi-persona insights
-            if multi_persona_users:
-                st.markdown("### 🌟 Multi-Interest Customer Insights")
-                st.write(f"**{len(multi_persona_users)} customers** have interests in multiple categories - these are prime targets for cross-selling!")
-                
-                # Sample multi-persona users
-                sample_multi = pd.DataFrame(multi_persona_users[:10])[
-                    ["first_name", "last_name", "gender", "city", "persona_string", "fan_segment", "engagement_potential"]
-                ].rename(columns={
-                    "first_name": "First Name",
-                    "last_name": "Last Name",
-                    "gender": "Gender",
-                    "city": "City",
-                    "persona_string": "Personas",
-                    "fan_segment": "Fan Segment",
-                    "engagement_potential": "Engagement Score"
-                })
-                st.dataframe(sample_multi, use_container_width=True)
-
-        with tab5:
+        with tab4:
             st.subheader("Customer Segments for Targeted Campaigns")
             
             filter_options = ["All"] + list(engine.persona_keywords.keys()) + ["Unclassified"] + list(df_result['fan_segment'].unique())
@@ -728,11 +609,10 @@ if file:
                         
                         # Customer details
                         combo_df = pd.DataFrame(combo_customers)[
-                            ["first_name", "last_name", "gender", "interest", "product_interest", "concerts_attended", "affluence_score", "engagement_potential"]
+                            ["first_name", "last_name", "interest", "product_interest", "concerts_attended", "affluence_score", "engagement_potential"]
                         ].rename(columns={
                             "first_name": "First Name",
                             "last_name": "Last Name",
-                            "gender": "Gender",
                             "interest": "Interests", 
                             "product_interest": "Product Category",
                             "concerts_attended": "Concert Attendance",
@@ -744,13 +624,12 @@ if file:
                 
                 # Download with monetization insights
                 detailed_df = pd.DataFrame(filtered_data)[
-                    ["first_name", "last_name", "gender", "persona_string", "fan_segment",
+                    ["first_name", "last_name", "persona_string", "fan_segment",
                      "interest", "product_interest", "concerts_attended", 
                      "affluence_score", "engagement_potential"]
                 ].rename(columns={
                     "first_name": "First Name",
                     "last_name": "Last Name",
-                    "gender": "Gender",
                     "persona_string": "Personas",
                     "fan_segment": "Fan Segment",
                     "interest": "Interests", 
@@ -783,8 +662,133 @@ else:
     - **Content Alignment**: Identify customers aligned with TGC themes for higher engagement
     - **Shopee Comparison**: Framework to validate hypothesis about customer quality vs Shopee
     - **Revenue Optimization**: Multi-persona customers for cross-selling opportunities
-    - **Gender Analytics**: Understand gender distribution across personas for targeted marketing
     """)
 
 st.markdown("---")
-st.markdown("© 2025 TGC Event Analysis | Fan Monetization & Engagement Analytics")
+st.markdown("© 2025 TGC Event Analysis | Fan Monetization & Engagement Analytics")container_width=True)
+
+        with tab2:
+            st.subheader("Multi-Persona Analysis")
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.markdown("**Persona Combinations**")
+                combo_df = pd.DataFrame([
+                    {"Combination": combo, "Count": count}
+                    for combo, count in combination_stats.most_common(10)
+                ])
+                fig_combo = px.bar(combo_df, x="Count", y="Combination", orientation='h',
+                                 title="Top 10 Persona Combinations")
+                fig_combo.update_layout(yaxis={'categoryorder':'total ascending'})
+                st.plotly_chart(fig_combo, use_container_width=True)
+            
+            with col2:
+                st.markdown("**Single vs Multi-Persona**")
+                single_persona = len([p for p in engine.personas if len(p["assigned_personas"]) == 1])
+                multi_persona = len(multi_persona_users)
+                
+                fig_multi = px.pie(
+                    names=["Single Persona", "Multi-Persona"],
+                    values=[single_persona, multi_persona],
+                    title="Single vs Multi-Persona Users"
+                )
+                st.plotly_chart(fig_multi, use_container_width=True)
+
+            if multi_persona_users:
+                st.markdown("**Sample Multi-Persona Users**")
+                sample_multi = pd.DataFrame(multi_persona_users[:5])[
+                    ["first_name", "last_name", "city", "persona_string", "interest", "product_interest"]
+                ].rename(columns={
+                    "first_name": "First Name",
+                    "last_name": "Last Name", 
+                    "city": "City",
+                    "persona_string": "Assigned Personas",
+                    "interest": "Interests",
+                    "product_interest": "Product Category"
+                })
+                st.dataframe(sample_multi, use_container_width=True)
+
+        with tab3:
+            st.subheader("Customer Segments")
+            
+            filter_persona = st.selectbox(
+                "Filter by persona:",
+                ["All"] + list(engine.persona_keywords.keys()) + ["Unclassified"]
+            )
+            
+            filtered_data = engine.personas.copy()
+            
+            if filter_persona != "All":
+                filtered_data = [
+                    p for p in filtered_data 
+                    if filter_persona in p["assigned_personas"]
+                ]
+            
+            if filtered_data:
+                # Group by persona combinations
+                combination_counts = defaultdict(int)
+                combination_data = defaultdict(list)
+                
+                for person in filtered_data:
+                    combo = person["persona_string"]
+                    combination_counts[combo] += 1
+                    combination_data[combo].append(person)
+                
+                # Sort by multi-persona first, then by count
+                def sort_key(item):
+                    combo, count = item
+                    persona_count = len(combo.split(" + "))
+                    return (-persona_count, -count)
+                
+                sorted_combinations = sorted(combination_counts.items(), key=sort_key)
+                
+                for combo, count in sorted_combinations:
+                    personas = combo.split(" + ")
+                    emoji_combo = "".join([engine.get_emoji(p) for p in personas])
+                    
+                    with st.expander(f"{emoji_combo} {combo} ({count} customers)", expanded=(count <= 30)):
+                        combo_customers = combination_data[combo]
+                        
+                        combo_df = pd.DataFrame(combo_customers)[
+                            ["first_name", "last_name", "interest", "product_interest", "concerts_attended"]
+                        ].rename(columns={
+                            "first_name": "First Name",
+                            "last_name": "Last Name",
+                            "interest": "Interests", 
+                            "product_interest": "Product Category",
+                            "concerts_attended": "Concert Attendance"
+                        })
+                        
+                        st.dataframe(combo_df.reset_index(drop=True), use_container_width=True)
+                
+                # Download
+                detailed_df = pd.DataFrame(filtered_data)[
+                    ["first_name", "last_name", "persona_string", 
+                     "interest", "product_interest", "concerts_attended"]
+                ].rename(columns={
+                    "first_name": "First Name",
+                    "last_name": "Last Name",
+                    "persona_string": "Personas",
+                    "interest": "Interests", 
+                    "product_interest": "Product Category",
+                    "concerts_attended": "Concert Attendance"
+                })
+                
+                csv = detailed_df.to_csv(index=False)
+                st.download_button(
+                    label="Download Customer Data",
+                    data=csv,
+                    file_name="customer_personas.csv",
+                    mime="text/csv"
+                )
+            else:
+                st.info("No customers match your filter criteria.")
+
+    else:
+        st.error("Could not read uploaded CSV. Please check formatting.")
+else:
+    st.info("Upload your customer CSV file to begin persona analysis.")
+
+st.markdown("---")
+st.markdown("© 2025 TGC Event Analysis - Multi-Persona Classification")
