@@ -546,8 +546,8 @@ else:
     st.info("👈 Upload your customer CSV file to begin persona analysis.")
     
     # Show example of improved logic
-    st.markdown("### 🆕 Simplified Presence-Based Approach:")
-    
+    st.markdown("### 🆕 Multi-Persona Classification:")
+   
 
 st.markdown("---")
 st.markdown("© 2025 TGC Event Analysis | Enhanced Multi-Persona Classification")
