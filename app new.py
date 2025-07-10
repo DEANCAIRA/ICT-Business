@@ -474,8 +474,7 @@ if file:
 else:
     st.info("👈 Upload your customer CSV file to begin persona analysis.")
     
-    # Show example of improved logic
-    st.markdown("### 🆕 Simplified Multi-Persona Approach:")
+    
    
 
 st.markdown("---")
