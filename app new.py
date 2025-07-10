@@ -5,7 +5,7 @@ from collections import Counter, defaultdict
 import plotly.express as px
 import plotly.graph_objects as go
 
-st.set_page_config(page_title="Multi-Persona Profiler", layout="wide")
+st.set_page_config(page_title="Persona Profiler", layout="wide")
 
 class PersonaEngine:
     def __init__(self):
@@ -371,8 +371,8 @@ else:
     st.markdown("### 🆕 Improved Features:")
     st.markdown("""
     - **Multi-persona assignment**: Customers can have multiple personas (e.g., "Fashion Devotee + Beauty Maven")
-    - **Enhanced keyword detection**: More comprehensive keyword coverage with weighted scoring
-    - **Smart fallback rules**: Live performance + entertainment + digital service → Fashion Devotee
+    - **keyword detection**: More comprehensive keyword coverage with weighted scoring
+    - **fallback rules**: Live performance + entertainment + digital service → Fashion Devotee
     - **Threshold-based classification**: Only assigns personas when there's sufficient evidence
     - **Detailed scoring**: Shows match confidence for each assignment
     - **Better coverage**: Captures customers with diverse interests more accurately
