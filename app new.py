@@ -70,21 +70,28 @@ class PersonaEngine:
 
     def calculate_persona_scores(self, interest: str, product_category: str):
         """Calculate scores for all personas based on interest and product category"""
-        # Combine both fields for comprehensive analysis
-        combined_text = f"{str(interest).lower()} {str(product_category).lower()}"
+        interest_text = str(interest).lower()
+        product_text = str(product_category).lower()
         
         # Clean and normalize text
-        combined_text = re.sub(r'[^\w\s]', ' ', combined_text)
-        combined_text = re.sub(r'\s+', ' ', combined_text).strip()
+        interest_clean = re.sub(r'[^\w\s]', ' ', interest_text)
+        interest_clean = re.sub(r'\s+', ' ', interest_clean).strip()
+        
+        product_clean = re.sub(r'[^\w\s]', ' ', product_text)
+        product_clean = re.sub(r'\s+', ' ', product_clean).strip()
         
         scores = {persona: 0 for persona in self.persona_keywords}
         
-        # Score each persona based on keyword matches
+        # Score each persona based on keyword matches with different weights
         for persona, keywords in self.persona_keywords.items():
-            for keyword, weight in keywords.items():
-                # Count occurrences of keyword in text
-                count = len(re.findall(r'\b' + re.escape(keyword) + r'\b', combined_text))
-                scores[persona] += count * weight
+            for keyword, base_weight in keywords.items():
+                # Count in interest field (higher weight - shows genuine interest)
+                interest_count = len(re.findall(r'\b' + re.escape(keyword) + r'\b', interest_clean))
+                scores[persona] += interest_count * base_weight * 1.5  # 1.5x weight for interests
+                
+                # Count in product category (standard weight - shows purchase intent)
+                product_count = len(re.findall(r'\b' + re.escape(keyword) + r'\b', product_clean))
+                scores[persona] += product_count * base_weight * 1.0  # 1.0x weight for product
         
         return scores
 
@@ -101,7 +108,9 @@ class PersonaEngine:
         # If no persona meets threshold, check for special fallback rules
         if not qualified_personas:
             # Special rule: Live performance + entertainment + digital service = Fashion Devotee
-            combined_text = f"{str(interest).lower()} {str(product_category).lower()}"
+            interest_text = str(interest).lower()
+            product_text = str(product_category).lower()
+            combined_text = f"{interest_text} {product_text}"
             
             if (("live performance" in combined_text or "entertainment" in combined_text) and 
                 ("digital service" in combined_text or "entertainment and digital" in combined_text)):
@@ -173,13 +182,49 @@ class PersonaEngine:
     def get_city_stats(self):
         return self.to_df()["city"].value_counts()
 
+    def get_engagement_quality_score(self, person):
+        """Calculate engagement quality to differentiate genuine vs spillover traffic"""
+        score = 0
+        
+        # Higher score for multiple interests mentioned
+        interest_count = len(re.split(r'[,;]', str(person.get('interest', ''))))
+        score += min(interest_count, 3) * 2  # Cap at 6 points
+        
+        # Higher score for specific/detailed interests vs generic ones
+        interest_text = str(person.get('interest', '')).lower()
+        if any(specific in interest_text for specific in ['designer', 'japanese fashion', 'fashion show', 'skincare', 'makeup']):
+            score += 3
+        
+        # Concert attendance indicates genuine event engagement
+        concerts = str(person.get('concerts_attended', '')).lower()
+        if 'more than 3' in concerts:
+            score += 3
+        elif '2 to 3' in concerts:
+            score += 2
+        elif '1' in concerts:
+            score += 1
+            
+        return score
+
+    def analyze_engagement_quality(self):
+        """Analyze engagement quality to validate persona assignments"""
+        results = {}
+        for persona in self.persona_keywords.keys():
+            persona_users = [p for p in self.personas if persona in p["assigned_personas"]]
+            if persona_users:
+                scores = [self.get_engagement_quality_score(p) for p in persona_users]
+                results[persona] = {
+                    'avg_engagement': sum(scores) / len(scores),
+                    'high_engagement_count': len([s for s in scores if s >= 6]),
+                    'total_count': len(persona_users)
+                }
     def get_multi_persona_users(self):
         """Get users with multiple personas"""
         return [p for p in self.personas if len(p["assigned_personas"]) > 1]
 
 
 # --- Streamlit UI ---
-st.title("Multi-Persona Customer Profiler")
+st.title("Persona Customer Profiler")
 
 engine = PersonaEngine()
 file = st.file_uploader("📤 Upload your customer CSV file", type="csv")
@@ -192,6 +237,7 @@ if file:
         combination_stats = engine.get_combination_stats()
         city_counts = engine.get_city_stats()
         multi_persona_users = engine.get_multi_persona_users()
+        engagement_analysis = engine.analyze_engagement_quality()
 
         # Overview metrics
         col1, col2, col3, col4 = st.columns(4)
@@ -205,13 +251,20 @@ if file:
             coverage = len([p for p in engine.personas if p["assigned_personas"] != ["Unclassified"]])
             st.metric("Classification Coverage", f"{coverage/len(df_result)*100:.1f}%")
 
-        tab1, tab2, tab3, tab4 = st.tabs(["📊 Persona Distribution", "🔄 Multi-Persona Analysis", "👥 Customer Groups", "🔍 Detailed View"])
+        tab1, tab2, tab3, tab4, tab5 = st.tabs(["📊 Persona Distribution", "🔄 Multi-Persona Analysis", "🎯 Engagement Quality", "👥 Customer Groups", "🔍 Detailed View"])
 
         with tab1:
             col1, col2 = st.columns(2)
 
             with col1:
                 st.subheader("Individual Persona Distribution")
+                
+                # Add validation note
+                st.info("💡 **Validation Note**: High Beauty Maven percentage could indicate:\n"
+                       "• Genuine beauty interest from TGC attendees\n"  
+                       "• Cross-event traffic from nearby beauty events\n"
+                       "• Natural overlap between fashion and beauty interests")
+                
                 fig_pie = px.pie(
                     names=list(persona_stats.keys()),
                     values=list(persona_stats.values()),
@@ -370,12 +423,12 @@ else:
     st.markdown("### 🆕 Improved Features:")
     st.markdown("""
     - **Multi-persona assignment**: Customers can have multiple personas (e.g., "Fashion Devotee + Beauty Maven")
-    - **keyword detection**: Weighted scoring
+    - **Balanced scoring**: Interest field weighted 1.5x (genuine interest) + Product category 1.0x (purchase intent)
+    - **Enhanced keyword detection**: Weighted scoring
     - **fallback rules**: Live performance + entertainment + digital service → Fashion Devotee
     - **Threshold-based classification**: Only assigns personas when there's sufficient evidence
     - **Detailed scoring**: Shows match confidence for each assignment
-    - **Better coverage**: Captures customers with diverse interests more accurately
     """)
 
 st.markdown("---")
-st.markdown("© 2025 TGC Event Analysis | Enhanced Multi-Persona Classification")
+st.markdown("© 2025 TGC Event Analysis | Enhanced Multi-Persona Classification 🎭")
