@@ -397,4 +397,4 @@ else:
     st.info("Upload your customer CSV file to begin persona analysis.")
 
 st.markdown("---")
-st.markdown("© 2025 TGC Event Analysis | Multi-Persona Classification")
+st.markdown("© 2025 JKEJK | Multi-Persona Classification")
