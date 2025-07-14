@@ -144,8 +144,10 @@ class PersonaEngine:
                 "phone": row.get("phone", ""),
                 "first_name": row.get("first name", ""),
                 "last_name": row.get("last name", ""),
+                "whatsapp": row.get("whatsapp", ""),
+                "age": row.get("age", ""),
                 "city": row.get("city", ""),
-                "gender": row.get("gender", "Unknown"),  # Add gender field
+                "gender": row.get("gender", "Unknown"),
                 "interest": interest,
                 "product_interest": product_category,
                 "concerts_attended": concerts,
@@ -301,8 +303,10 @@ if file:
             if multi_persona_users:
                 st.markdown("**Sample Multi-Persona Users**")
                 sample_multi = pd.DataFrame(multi_persona_users[:5])[
-                    ["first_name", "last_name", "gender", "city", "persona_string", "interest", "product_interest"]
+                    ["email", "phone", "first_name", "last_name", "gender", "city", "persona_string", "interest", "product_interest"]
                 ].rename(columns={
+                    "email": "Email",
+                    "phone": "Phone",
                     "first_name": "First Name",
                     "last_name": "Last Name",
                     "gender": "Gender",
@@ -355,11 +359,15 @@ if file:
                         combo_customers = combination_data[combo]
                         
                         combo_df = pd.DataFrame(combo_customers)[
-                            ["first_name", "last_name", "gender", "interest", "product_interest", "concerts_attended"]
+                            ["email", "phone", "first_name", "last_name", "gender", "age", "city", "interest", "product_interest", "concerts_attended"]
                         ].rename(columns={
+                            "email": "Email",
+                            "phone": "Phone",
                             "first_name": "First Name",
                             "last_name": "Last Name",
                             "gender": "Gender",
+                            "age": "Age",
+                            "city": "City",
                             "interest": "Interests", 
                             "product_interest": "Product Category",
                             "concerts_attended": "Concert Attendance"
@@ -369,12 +377,16 @@ if file:
                 
                 # Download
                 detailed_df = pd.DataFrame(filtered_data)[
-                    ["first_name", "last_name", "gender", "persona_string", 
+                    ["email", "phone", "first_name", "last_name", "gender", "age", "city", "persona_string", 
                      "interest", "product_interest", "concerts_attended"]
                 ].rename(columns={
+                    "email": "Email",
+                    "phone": "Phone",
                     "first_name": "First Name",
                     "last_name": "Last Name",
                     "gender": "Gender",
+                    "age": "Age",
+                    "city": "City",
                     "persona_string": "Personas",
                     "interest": "Interests", 
                     "product_interest": "Product Category",
