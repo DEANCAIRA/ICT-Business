@@ -3,6 +3,7 @@ import pandas as pd
 import re
 from collections import Counter, defaultdict
 import plotly.express as px
+import plotly.graph_objects as go
 
 st.set_page_config(page_title="Persona Profiler", layout="wide")
 
@@ -183,7 +184,8 @@ class PersonaEngine:
 
 
 # Streamlit UI
-st.title("Persona Customer Profiler")
+st.title("🎯 Persona Customer Profiler")
+st.markdown("*Multi-Persona Classification System*")
 
 engine = PersonaEngine()
 file = st.file_uploader("Upload your customer CSV file", type="csv")
@@ -198,50 +200,121 @@ if file:
         gender_stats = engine.get_gender_stats()
         multi_persona_users = engine.get_multi_persona_users()
 
-        tab1, tab2, tab3 = st.tabs(["Persona Distribution", "Multi-Persona Analysis", "Customer Details"])
+        # Summary metrics
+        total_customers = len(engine.personas)
+        single_persona_count = len([p for p in engine.personas if len(p["assigned_personas"]) == 1])
+        multi_persona_count = len(multi_persona_users)
+        avg_personas = sum(len(p["assigned_personas"]) for p in engine.personas) / total_customers
+
+        tab1, tab2, tab3 = st.tabs(["📊 Persona Overview", "🔄 Multi-Persona Analysis", "👥 Customer Details"])
 
         with tab1:
-            # First row - Persona and City
+            # Key Metrics Row
+            st.subheader("📈 Key Metrics")
+            col1, col2, col3, col4 = st.columns(4)
+            
+            with col1:
+                st.metric("Total Customers", f"{total_customers:,}")
+            with col2:
+                st.metric("Single Persona", f"{single_persona_count:,}", f"{(single_persona_count/total_customers)*100:.1f}%")
+            with col3:
+                st.metric("Multi-Persona", f"{multi_persona_count:,}", f"{(multi_persona_count/total_customers)*100:.1f}%")
+            with col4:
+                st.metric("Avg Personas/Customer", f"{avg_personas:.1f}")
+
+            st.markdown("---")
+
+            # Main visualization section
             col1, col2 = st.columns(2)
 
             with col1:
-                st.subheader("Persona Distribution")
-                fig_pie = px.pie(
-                    names=list(persona_stats.keys()),
-                    values=list(persona_stats.values()),
-                    title="Persona Assignments",
-                    color_discrete_map={
-                        'Fashion Devotee': '#FF6B6B',
-                        'Beauty Maven': '#4ECDC4',
-                        'Japanese Lover': '#45B7D1',
-                        'Unclassified': '#95A99C'
-                    }
+                st.subheader("🎯 Persona Reach (Total Instances)")
+                st.caption("*Shows how many customers each persona reaches (can exceed 100% due to multi-persona)*")
+                
+                # Bar chart showing total reach for each persona
+                persona_data = []
+                colors = {'Fashion Devotee': '#FF6B6B', 'Beauty Maven': '#4ECDC4', 
+                         'Japanese Lover': '#45B7D1', 'Unclassified': '#95A99C'}
+                
+                for persona, count in persona_stats.items():
+                    percentage = (count / total_customers) * 100
+                    persona_data.append({
+                        'Persona': persona,
+                        'Count': count,
+                        'Percentage': percentage
+                    })
+                
+                persona_df = pd.DataFrame(persona_data).sort_values('Count', ascending=True)
+                
+                fig_bar = px.bar(
+                    persona_df, 
+                    x='Count', 
+                    y='Persona', 
+                    orientation='h',
+                    color='Persona',
+                    color_discrete_map=colors,
+                    title="Total Customer Reach by Persona",
+                    text='Count'
                 )
-                fig_pie.update_traces(textposition='inside', textinfo='percent+label')
-                st.plotly_chart(fig_pie, use_container_width=True)
+                
+                # Add percentage annotations
+                for i, row in persona_df.iterrows():
+                    fig_bar.add_annotation(
+                        x=row['Count'] + max(persona_df['Count']) * 0.02,
+                        y=row['Persona'],
+                        text=f"{row['Percentage']:.1f}%",
+                        showarrow=False,
+                        font=dict(size=11, color='darkblue'),
+                        xanchor='left'
+                    )
+                
+                fig_bar.update_layout(
+                    showlegend=False,
+                    height=300,
+                    margin=dict(l=0, r=60, t=40, b=0)
+                )
+                fig_bar.update_traces(textposition='inside', textfont_size=12)
+                st.plotly_chart(fig_bar, use_container_width=True)
 
             with col2:
-                st.subheader("City Distribution")
-                top_cities = city_counts[city_counts > city_counts.sum() * 0.02]
-                rest = city_counts[city_counts <= city_counts.sum() * 0.02]
-                city_df = pd.DataFrame({
-                    "City": list(top_cities.index) + ["Others"],
-                    "Count": list(top_cities.values) + [rest.sum()]
-                })
-                fig_city = px.pie(city_df, names="City", values="Count", title="Customers by City")
-                fig_city.update_traces(textposition='inside', textinfo='percent+label')
-                st.plotly_chart(fig_city, use_container_width=True)
+                st.subheader("🔀 Customer Complexity")
+                st.caption("*Distribution of single vs multi-persona customers*")
+                
+                # Create pie chart data
+                complexity_data = {
+                    'Single Persona': single_persona_count,
+                    'Multi-Persona': multi_persona_count
+                }
+                
+                fig_complexity = px.pie(
+                    names=list(complexity_data.keys()),
+                    values=list(complexity_data.values()),
+                    title="Customer Persona Complexity",
+                    color_discrete_map={
+                        'Single Persona': '#FDB462',
+                        'Multi-Persona': '#80B1D3'
+                    }
+                )
+                fig_complexity.update_traces(
+                    textposition='inside', 
+                    textinfo='percent+label+value',
+                    textfont_size=12
+                )
+                fig_complexity.update_layout(height=300)
+                st.plotly_chart(fig_complexity, use_container_width=True)
 
-            # Second row - Gender and Multi-Persona
+            # Second row - Demographics
+            st.markdown("---")
+            st.subheader("👥 Demographics Overview")
+            
             col3, col4 = st.columns(2)
 
             with col3:
-                st.subheader("Gender Distribution")
+                st.markdown("**Gender Distribution**")
                 if not gender_stats.empty:
                     fig_gender = px.pie(
                         names=gender_stats.index,
                         values=gender_stats.values,
-                        title="Customer Gender",
                         color_discrete_map={
                             'Male': '#4169E1',
                             'Female': '#FF69B4',
@@ -251,58 +324,134 @@ if file:
                         }
                     )
                     fig_gender.update_traces(textposition='inside', textinfo='percent+label')
+                    fig_gender.update_layout(height=300, showlegend=True)
                     st.plotly_chart(fig_gender, use_container_width=True)
                 else:
                     st.info("No gender data available")
 
             with col4:
-                st.subheader("Interest Diversity")
-                single_persona = len([p for p in engine.personas if len(p["assigned_personas"]) == 1])
-                multi_persona = len(multi_persona_users)
+                st.markdown("**City Distribution**")
+                top_cities = city_counts[city_counts > city_counts.sum() * 0.02]
+                rest = city_counts[city_counts <= city_counts.sum() * 0.02]
                 
-                fig_multi = px.pie(
-                    names=["Single Interest", "Multi-Interest"],
-                    values=[single_persona, multi_persona],
-                    title="Customer Interest Types",
-                    color_discrete_map={
-                        'Single Interest': '#FDB462',
-                        'Multi-Interest': '#80B1D3'
-                    }
-                )
-                fig_multi.update_traces(textposition='inside', textinfo='percent+label')
-                st.plotly_chart(fig_multi, use_container_width=True)
+                city_data = list(top_cities.index)
+                city_values = list(top_cities.values)
+                
+                if rest.sum() > 0:
+                    city_data.append("Others")
+                    city_values.append(rest.sum())
+                    
+                city_df = pd.DataFrame({
+                    "City": city_data,
+                    "Count": city_values
+                })
+                
+                fig_city = px.pie(city_df, names="City", values="Count")
+                fig_city.update_traces(textposition='inside', textinfo='percent+label')
+                fig_city.update_layout(height=300, showlegend=True)
+                st.plotly_chart(fig_city, use_container_width=True)
 
         with tab2:
-            st.subheader("Multi-Persona Analysis")
+            st.subheader("🔄 Multi-Persona Deep Analysis")
             
             col1, col2 = st.columns(2)
             
             with col1:
-                st.markdown("**Persona Combinations**")
+                st.markdown("**📋 Top Persona Combinations**")
                 combo_df = pd.DataFrame([
-                    {"Combination": combo, "Count": count}
-                    for combo, count in combination_stats.most_common(10)
+                    {
+                        "Combination": combo, 
+                        "Count": count, 
+                        "% of Total": f"{(count/total_customers)*100:.1f}%"
+                    }
+                    for combo, count in combination_stats.most_common(15)
                 ])
-                fig_combo = px.bar(combo_df, x="Count", y="Combination", orientation='h',
-                                 title="Top 10 Persona Combinations")
-                fig_combo.update_layout(yaxis={'categoryorder':'total ascending'})
+                
+                # Color code combinations
+                def get_combo_color(combo):
+                    if " + " in combo:
+                        return "#E74C3C"  # Red for multi-persona
+                    else:
+                        return "#3498DB"  # Blue for single persona
+                
+                combo_df['Color'] = combo_df['Combination'].apply(get_combo_color)
+                
+                fig_combo = px.bar(
+                    combo_df, 
+                    x="Count", 
+                    y="Combination", 
+                    orientation='h',
+                    color='Color',
+                    color_discrete_map={"#E74C3C": "#E74C3C", "#3498DB": "#3498DB"},
+                    title="Most Common Persona Combinations",
+                    text="Count"
+                )
+                fig_combo.update_layout(
+                    yaxis={'categoryorder':'total ascending'},
+                    showlegend=False,
+                    height=500
+                )
+                fig_combo.update_traces(textposition='outside', textfont_size=10)
                 st.plotly_chart(fig_combo, use_container_width=True)
+                
+                # Show the data table
+                st.dataframe(combo_df[['Combination', 'Count', '% of Total']], use_container_width=True, hide_index=True)
             
             with col2:
-                st.markdown("**Single vs Multi-Persona**")
-                single_persona = len([p for p in engine.personas if len(p["assigned_personas"]) == 1])
-                multi_persona = len(multi_persona_users)
+                st.markdown("**🔥 Persona Overlap Heatmap**")
                 
-                fig_multi2 = px.pie(
-                    names=["Single Persona", "Multi-Persona"],
-                    values=[single_persona, multi_persona],
-                    title="Single vs Multi-Persona Users"
+                # Create overlap matrix for personas
+                personas_list = list(engine.persona_keywords.keys()) + ["Unclassified"]
+                overlap_matrix = []
+                
+                for persona1 in personas_list:
+                    row = []
+                    for persona2 in personas_list:
+                        if persona1 == persona2:
+                            # Diagonal: total count for this persona
+                            count = persona_stats.get(persona1, 0)
+                        else:
+                            # Off-diagonal: count of people with both personas
+                            count = len([p for p in engine.personas 
+                                       if persona1 in p["assigned_personas"] and 
+                                          persona2 in p["assigned_personas"]])
+                        row.append(count)
+                    overlap_matrix.append(row)
+                
+                fig_heatmap = go.Figure(data=go.Heatmap(
+                    z=overlap_matrix,
+                    x=personas_list,
+                    y=personas_list,
+                    colorscale='Viridis',
+                    text=overlap_matrix,
+                    texttemplate="%{text}",
+                    textfont={"size": 14, "color": "white"},
+                    hoverongaps=False
+                ))
+                
+                fig_heatmap.update_layout(
+                    title="Persona Overlap Matrix<br><sub>Diagonal: Total | Off-diagonal: Shared customers</sub>",
+                    xaxis_title="Persona",
+                    yaxis_title="Persona",
+                    height=400,
+                    font=dict(size=11)
                 )
-                st.plotly_chart(fig_multi2, use_container_width=True)
+                st.plotly_chart(fig_heatmap, use_container_width=True)
+                
+                # Multi-persona statistics
+                st.markdown("**📊 Multi-Persona Statistics**")
+                multi_stats = pd.DataFrame([
+                    {"Metric": "Customers with 1 persona", "Count": single_persona_count, "Percentage": f"{(single_persona_count/total_customers)*100:.1f}%"},
+                    {"Metric": "Customers with 2+ personas", "Count": multi_persona_count, "Percentage": f"{(multi_persona_count/total_customers)*100:.1f}%"},
+                    {"Metric": "Average personas per customer", "Count": f"{avg_personas:.2f}", "Percentage": "-"},
+                    {"Metric": "Max personas on one customer", "Count": max(len(p["assigned_personas"]) for p in engine.personas), "Percentage": "-"}
+                ])
+                st.dataframe(multi_stats, use_container_width=True, hide_index=True)
 
             if multi_persona_users:
-                st.markdown("**Sample Multi-Persona Users**")
-                sample_multi = pd.DataFrame(multi_persona_users[:5])[
+                st.markdown("---")
+                st.markdown("**🎭 Sample Multi-Persona Customers**")
+                sample_multi = pd.DataFrame(multi_persona_users[:10])[
                     ["email", "phone", "first_name", "last_name", "gender", "city", "persona_string", "interest", "product_interest"]
                 ].rename(columns={
                     "email": "Email",
@@ -315,15 +464,22 @@ if file:
                     "interest": "Interests",
                     "product_interest": "Product Category"
                 })
-                st.dataframe(sample_multi, use_container_width=True)
+                st.dataframe(sample_multi, use_container_width=True, hide_index=True)
+            else:
+                st.info("🤔 No multi-persona customers found in current data.")
 
         with tab3:
-            st.subheader("Customer Segments")
+            st.subheader("👥 Customer Segments")
             
-            filter_persona = st.selectbox(
-                "Filter by persona:",
-                ["All"] + list(engine.persona_keywords.keys()) + ["Unclassified"]
-            )
+            # Filter controls
+            col1, col2 = st.columns([2, 1])
+            with col1:
+                filter_persona = st.selectbox(
+                    "🔍 Filter by persona:",
+                    ["All"] + list(engine.persona_keywords.keys()) + ["Unclassified"]
+                )
+            with col2:
+                show_contact = st.checkbox("📞 Show Contact Details", value=True)
             
             filtered_data = engine.personas.copy()
             
@@ -334,6 +490,8 @@ if file:
                 ]
             
             if filtered_data:
+                st.info(f"📊 Showing {len(filtered_data)} customers" + (f" with {filter_persona} persona" if filter_persona != "All" else ""))
+                
                 # Group by persona combinations
                 combination_counts = defaultdict(int)
                 combination_data = defaultdict(list)
@@ -354,32 +512,56 @@ if file:
                 for combo, count in sorted_combinations:
                     personas = combo.split(" + ")
                     emoji_combo = "".join([engine.get_emoji(p) for p in personas])
+                    percentage = (count / len(filtered_data)) * 100
                     
-                    with st.expander(f"{emoji_combo} {combo} ({count} customers)", expanded=(count <= 30)):
+                    # Multi-persona gets expanded by default if small group
+                    is_multi = len(personas) > 1
+                    should_expand = count <= 50 or is_multi
+                    
+                    with st.expander(
+                        f"{emoji_combo} **{combo}** - {count} customers ({percentage:.1f}%)", 
+                        expanded=should_expand
+                    ):
                         combo_customers = combination_data[combo]
                         
-                        combo_df = pd.DataFrame(combo_customers)[
-                            ["email", "phone", "first_name", "last_name", "gender", "age", "city", "interest", "product_interest", "concerts_attended"]
-                        ].rename(columns={
-                            "email": "Email",
-                            "phone": "Phone",
-                            "first_name": "First Name",
-                            "last_name": "Last Name",
-                            "gender": "Gender",
-                            "age": "Age",
-                            "city": "City",
-                            "interest": "Interests", 
-                            "product_interest": "Product Category",
-                            "concerts_attended": "Concert Attendance"
-                        })
+                        # Choose columns based on contact details setting
+                        if show_contact:
+                            columns = ["email", "phone", "first_name", "last_name", "gender", "age", "city", "interest", "product_interest", "concerts_attended"]
+                            column_names = {
+                                "email": "📧 Email",
+                                "phone": "📱 Phone", 
+                                "first_name": "👤 First Name",
+                                "last_name": "👥 Last Name",
+                                "gender": "⚧ Gender",
+                                "age": "🎂 Age",
+                                "city": "🏙 City",
+                                "interest": "❤️ Interests", 
+                                "product_interest": "🛍 Product Category",
+                                "concerts_attended": "🎵 Concerts"
+                            }
+                        else:
+                            columns = ["first_name", "last_name", "gender", "age", "city", "interest", "product_interest", "concerts_attended"]
+                            column_names = {
+                                "first_name": "👤 First Name",
+                                "last_name": "👥 Last Name", 
+                                "gender": "⚧ Gender",
+                                "age": "🎂 Age",
+                                "city": "🏙 City",
+                                "interest": "❤️ Interests", 
+                                "product_interest": "🛍 Product Category",
+                                "concerts_attended": "🎵 Concerts"
+                            }
                         
-                        st.dataframe(combo_df.reset_index(drop=True), use_container_width=True)
+                        combo_df = pd.DataFrame(combo_customers)[columns].rename(columns=column_names)
+                        st.dataframe(combo_df.reset_index(drop=True), use_container_width=True, hide_index=True)
                 
-                # Download
-                detailed_df = pd.DataFrame(filtered_data)[
-                    ["email", "phone", "first_name", "last_name", "gender", "age", "city", "persona_string", 
-                     "interest", "product_interest", "concerts_attended"]
-                ].rename(columns={
+                # Download section
+                st.markdown("---")
+                st.markdown("**📥 Download Data**")
+                
+                download_columns = ["email", "phone", "first_name", "last_name", "gender", "age", "city", "persona_string", 
+                                  "interest", "product_interest", "concerts_attended"]
+                download_column_names = {
                     "email": "Email",
                     "phone": "Phone",
                     "first_name": "First Name",
@@ -391,22 +573,49 @@ if file:
                     "interest": "Interests", 
                     "product_interest": "Product Category",
                     "concerts_attended": "Concert Attendance"
-                })
+                }
+                
+                detailed_df = pd.DataFrame(filtered_data)[download_columns].rename(columns=download_column_names)
                 
                 csv = detailed_df.to_csv(index=False)
                 st.download_button(
-                    label="Download Customer Data",
+                    label="💾 Download Customer Data (CSV)",
                     data=csv,
-                    file_name="customer_personas.csv",
+                    file_name=f"customer_personas_{filter_persona.lower().replace(' ', '_')}.csv",
                     mime="text/csv"
                 )
+                
+                # Quick stats
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric("👥 Total Filtered", len(filtered_data))
+                with col2:
+                    unique_combos = len(set(p["persona_string"] for p in filtered_data))
+                    st.metric("🎭 Unique Combinations", unique_combos)
+                with col3:
+                    avg_filtered_personas = sum(len(p["assigned_personas"]) for p in filtered_data) / len(filtered_data)
+                    st.metric("📊 Avg Personas", f"{avg_filtered_personas:.1f}")
+                    
             else:
-                st.info("No customers match your filter criteria.")
+                st.warning("❌ No customers match your filter criteria.")
 
     else:
-        st.error("Could not read uploaded CSV. Please check formatting.")
+        st.error("❌ Could not read uploaded CSV. Please check formatting.")
 else:
-    st.info("Upload your customer CSV file to begin persona analysis.")
+    st.info("📤 Upload your customer CSV file to begin persona analysis.")
+    st.markdown("""
+    ### 📋 Expected CSV Format:
+    - Email
+    - Phone  
+    - First Name
+    - Last Name
+    - Gender
+    - Age
+    - City
+    - Interest
+    - Product Category
+    - Concerts Attended
+    """)
 
 st.markdown("---")
-st.markdown("© 2025 JKEJK | Multi-Persona Classification")
+st.markdown("© 2025 JKEJK | Multi-Persona Classification System")
