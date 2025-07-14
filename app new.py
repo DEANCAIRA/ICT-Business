@@ -603,19 +603,7 @@ if file:
         st.error("❌ Could not read uploaded CSV. Please check formatting.")
 else:
     st.info("📤 Upload your customer CSV file to begin persona analysis.")
-    st.markdown("""
-    ### 📋 Expected CSV Format:
-    - Email
-    - Phone  
-    - First Name
-    - Last Name
-    - Gender
-    - Age
-    - City
-    - Interest
-    - Product Category
-    - Concerts Attended
-    """)
+
 
 st.markdown("---")
 st.markdown("© 2025 JKEJK | Multi-Persona Classification System")
