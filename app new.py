@@ -209,20 +209,6 @@ if file:
         tab1, tab2, tab3 = st.tabs(["📊 Persona Overview", "🔄 Multi-Persona Analysis", "👥 Customer Details"])
 
         with tab1:
-            # Key Metrics Row
-            st.subheader("📈 Key Metrics")
-            col1, col2, col3, col4 = st.columns(4)
-            
-            with col1:
-                st.metric("Total Customers", f"{total_customers:,}")
-            with col2:
-                st.metric("Single Persona", f"{single_persona_count:,}", f"{(single_persona_count/total_customers)*100:.1f}%")
-            with col3:
-                st.metric("Multi-Persona", f"{multi_persona_count:,}", f"{(multi_persona_count/total_customers)*100:.1f}%")
-            with col4:
-                st.metric("Avg Personas/Customer", f"{avg_personas:.1f}")
-
-            st.markdown("---")
 
             # Main visualization section
             col1, col2 = st.columns(2)
@@ -303,8 +289,10 @@ if file:
                     textfont_color='white',
                     marker=dict(line=dict(color='white', width=2))
                 )
-                fig_complexity.update_layout(height=400, showlegend=True, 
-                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
+                fig_complexity.update_layout(
+                    height=400, 
+                    showlegend=False
+                )
                 st.plotly_chart(fig_complexity, use_container_width=True)
 
             # Second row - Demographics
@@ -334,8 +322,7 @@ if file:
                         textfont_color='white',
                         marker=dict(line=dict(color='white', width=2))
                     )
-                    fig_gender.update_layout(height=400, showlegend=True,
-                        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
+                    fig_gender.update_layout(height=400, showlegend=False)
                     st.plotly_chart(fig_gender, use_container_width=True)
                 else:
                     st.info("No gender data available")
@@ -369,8 +356,7 @@ if file:
                     textfont_color='white',
                     marker=dict(line=dict(color='white', width=2))
                 )
-                fig_city.update_layout(height=400, showlegend=True,
-                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
+                fig_city.update_layout(height=400, showlegend=False)
                 st.plotly_chart(fig_city, use_container_width=True)
 
         with tab2:
@@ -422,8 +408,8 @@ if file:
             with col2:
                 st.markdown("**🔥 Persona Overlap Heatmap**")
                 
-                # Create overlap matrix for personas
-                personas_list = list(engine.persona_keywords.keys()) + ["Unclassified"]
+                # Create overlap matrix for personas (exclude Unclassified)
+                personas_list = list(engine.persona_keywords.keys())  # Remove + ["Unclassified"]
                 overlap_matrix = []
                 
                 for persona1 in personas_list:
@@ -444,7 +430,7 @@ if file:
                     z=overlap_matrix,
                     x=personas_list,
                     y=personas_list,
-                    colorscale='RdYlBu_r',  # High contrast colorscale
+                    colorscale='Viridis',  # Back to original colorscale
                     text=overlap_matrix,
                     texttemplate="%{text}",
                     textfont={"size": 16, "color": "white"},
@@ -639,7 +625,7 @@ if file:
         st.error("❌ Could not read uploaded CSV. Please check formatting.")
 else:
     st.info("📤 Upload your customer CSV file to begin persona analysis.")
-   
+  
 
 st.markdown("---")
 st.markdown("© 2025 JKEJK | Multi-Persona Classification System ✨")
