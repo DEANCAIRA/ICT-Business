@@ -231,18 +231,19 @@ if file:
                 st.subheader("🎯 Persona Reach (Total Instances)")
                 st.caption("*Shows how many customers each persona reaches (can exceed 100% due to multi-persona)*")
                 
-                # Bar chart showing total reach for each persona
+                # Bar chart showing total reach for each persona (exclude Unclassified)
                 persona_data = []
-                colors = {'Fashion Devotee': '#FF6B6B', 'Beauty Maven': '#4ECDC4', 
-                         'Japanese Lover': '#45B7D1', 'Unclassified': '#95A99C'}
+                colors = {'Fashion Devotee': '#E74C3C', 'Beauty Maven': '#2ECC71', 
+                         'Japanese Lover': '#3498DB', 'Unclassified': '#95A99C'}
                 
                 for persona, count in persona_stats.items():
-                    percentage = (count / total_customers) * 100
-                    persona_data.append({
-                        'Persona': persona,
-                        'Count': count,
-                        'Percentage': percentage
-                    })
+                    if persona != "Unclassified":  # Exclude Unclassified
+                        percentage = (count / total_customers) * 100
+                        persona_data.append({
+                            'Persona': persona,
+                            'Count': count,
+                            'Percentage': percentage
+                        })
                 
                 persona_df = pd.DataFrame(persona_data).sort_values('Count', ascending=True)
                 
@@ -264,16 +265,16 @@ if file:
                         y=row['Persona'],
                         text=f"{row['Percentage']:.1f}%",
                         showarrow=False,
-                        font=dict(size=11, color='darkblue'),
+                        font=dict(size=12, color='white', family="Arial Black"),
                         xanchor='left'
                     )
                 
                 fig_bar.update_layout(
                     showlegend=False,
-                    height=300,
-                    margin=dict(l=0, r=60, t=40, b=0)
+                    height=400,
+                    margin=dict(l=0, r=80, t=40, b=0)
                 )
-                fig_bar.update_traces(textposition='inside', textfont_size=12)
+                fig_bar.update_traces(textposition='inside', textfont_size=14, textfont_color='white')
                 st.plotly_chart(fig_bar, use_container_width=True)
 
             with col2:
@@ -291,16 +292,19 @@ if file:
                     values=list(complexity_data.values()),
                     title="Customer Persona Complexity",
                     color_discrete_map={
-                        'Single Persona': '#FDB462',
-                        'Multi-Persona': '#80B1D3'
+                        'Single Persona': '#F39C12',
+                        'Multi-Persona': '#9B59B6'
                     }
                 )
                 fig_complexity.update_traces(
                     textposition='inside', 
                     textinfo='percent+label+value',
-                    textfont_size=12
+                    textfont_size=14,
+                    textfont_color='white',
+                    marker=dict(line=dict(color='white', width=2))
                 )
-                fig_complexity.update_layout(height=300)
+                fig_complexity.update_layout(height=400, showlegend=True, 
+                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
                 st.plotly_chart(fig_complexity, use_container_width=True)
 
             # Second row - Demographics
@@ -316,15 +320,22 @@ if file:
                         names=gender_stats.index,
                         values=gender_stats.values,
                         color_discrete_map={
-                            'Male': '#4169E1',
-                            'Female': '#FF69B4',
-                            'M': '#4169E1',
-                            'F': '#FF69B4',
+                            'Male': '#3498DB',
+                            'Female': '#E91E63',
+                            'M': '#3498DB',
+                            'F': '#E91E63',
                             'Unknown': '#95A99C'
                         }
                     )
-                    fig_gender.update_traces(textposition='inside', textinfo='percent+label')
-                    fig_gender.update_layout(height=300, showlegend=True)
+                    fig_gender.update_traces(
+                        textposition='inside', 
+                        textinfo='percent+label+value',
+                        textfont_size=14,
+                        textfont_color='white',
+                        marker=dict(line=dict(color='white', width=2))
+                    )
+                    fig_gender.update_layout(height=400, showlegend=True,
+                        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
                     st.plotly_chart(fig_gender, use_container_width=True)
                 else:
                     st.info("No gender data available")
@@ -346,9 +357,20 @@ if file:
                     "Count": city_values
                 })
                 
-                fig_city = px.pie(city_df, names="City", values="Count")
-                fig_city.update_traces(textposition='inside', textinfo='percent+label')
-                fig_city.update_layout(height=300, showlegend=True)
+                # Use high contrast colors for cities
+                city_colors = ['#E74C3C', '#2ECC71', '#3498DB', '#F39C12', '#9B59B6', '#1ABC9C', '#E67E22', '#34495E']
+                
+                fig_city = px.pie(city_df, names="City", values="Count", 
+                                color_discrete_sequence=city_colors)
+                fig_city.update_traces(
+                    textposition='inside', 
+                    textinfo='percent+label',
+                    textfont_size=12,
+                    textfont_color='white',
+                    marker=dict(line=dict(color='white', width=2))
+                )
+                fig_city.update_layout(height=400, showlegend=True,
+                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
                 st.plotly_chart(fig_city, use_container_width=True)
 
         with tab2:
@@ -367,12 +389,12 @@ if file:
                     for combo, count in combination_stats.most_common(15)
                 ])
                 
-                # Color code combinations
+                # Color code combinations with high contrast
                 def get_combo_color(combo):
                     if " + " in combo:
                         return "#E74C3C"  # Red for multi-persona
                     else:
-                        return "#3498DB"  # Blue for single persona
+                        return "#2ECC71"  # Green for single persona
                 
                 combo_df['Color'] = combo_df['Combination'].apply(get_combo_color)
                 
@@ -382,7 +404,7 @@ if file:
                     y="Combination", 
                     orientation='h',
                     color='Color',
-                    color_discrete_map={"#E74C3C": "#E74C3C", "#3498DB": "#3498DB"},
+                    color_discrete_map={"#E74C3C": "#E74C3C", "#2ECC71": "#2ECC71"},
                     title="Most Common Persona Combinations",
                     text="Count"
                 )
@@ -391,7 +413,7 @@ if file:
                     showlegend=False,
                     height=500
                 )
-                fig_combo.update_traces(textposition='outside', textfont_size=10)
+                fig_combo.update_traces(textposition='outside', textfont_size=12, textfont_color='white')
                 st.plotly_chart(fig_combo, use_container_width=True)
                 
                 # Show the data table
@@ -422,10 +444,10 @@ if file:
                     z=overlap_matrix,
                     x=personas_list,
                     y=personas_list,
-                    colorscale='Viridis',
+                    colorscale='RdYlBu_r',  # High contrast colorscale
                     text=overlap_matrix,
                     texttemplate="%{text}",
-                    textfont={"size": 14, "color": "white"},
+                    textfont={"size": 16, "color": "white"},
                     hoverongaps=False
                 ))
                 
@@ -433,18 +455,32 @@ if file:
                     title="Persona Overlap Matrix<br><sub>Diagonal: Total | Off-diagonal: Shared customers</sub>",
                     xaxis_title="Persona",
                     yaxis_title="Persona",
-                    height=400,
-                    font=dict(size=11)
+                    height=500,
+                    font=dict(size=12)
                 )
                 st.plotly_chart(fig_heatmap, use_container_width=True)
                 
-                # Multi-persona statistics
+                # Multi-persona statistics (exclude Unclassified from metrics)
                 st.markdown("**📊 Multi-Persona Statistics**")
+                
+                # Calculate classified customers only
+                classified_personas = [p for p in engine.personas if "Unclassified" not in p["assigned_personas"]]
+                total_classified = len(classified_personas)
+                classified_single = len([p for p in classified_personas if len(p["assigned_personas"]) == 1])
+                classified_multi = len([p for p in classified_personas if len(p["assigned_personas"]) > 1])
+                
+                if total_classified > 0:
+                    avg_classified_personas = sum(len(p["assigned_personas"]) for p in classified_personas) / total_classified
+                    max_classified_personas = max(len(p["assigned_personas"]) for p in classified_personas)
+                else:
+                    avg_classified_personas = 0
+                    max_classified_personas = 0
+                
                 multi_stats = pd.DataFrame([
-                    {"Metric": "Customers with 1 persona", "Count": single_persona_count, "Percentage": f"{(single_persona_count/total_customers)*100:.1f}%"},
-                    {"Metric": "Customers with 2+ personas", "Count": multi_persona_count, "Percentage": f"{(multi_persona_count/total_customers)*100:.1f}%"},
-                    {"Metric": "Average personas per customer", "Count": f"{avg_personas:.2f}", "Percentage": "-"},
-                    {"Metric": "Max personas on one customer", "Count": max(len(p["assigned_personas"]) for p in engine.personas), "Percentage": "-"}
+                    {"Metric": "Classified customers with 1 persona", "Count": classified_single, "Percentage": f"{(classified_single/total_classified)*100:.1f}%" if total_classified > 0 else "0%"},
+                    {"Metric": "Classified customers with 2+ personas", "Count": classified_multi, "Percentage": f"{(classified_multi/total_classified)*100:.1f}%" if total_classified > 0 else "0%"},
+                    {"Metric": "Average personas per classified customer", "Count": f"{avg_classified_personas:.2f}", "Percentage": "-"},
+                    {"Metric": "Max personas on one customer", "Count": max_classified_personas, "Percentage": "-"}
                 ])
                 st.dataframe(multi_stats, use_container_width=True, hide_index=True)
 
@@ -603,7 +639,7 @@ if file:
         st.error("❌ Could not read uploaded CSV. Please check formatting.")
 else:
     st.info("📤 Upload your customer CSV file to begin persona analysis.")
-
+   
 
 st.markdown("---")
-st.markdown("© 2025 JKEJK | Multi-Persona Classification System")
+st.markdown("© 2025 JKEJK | Multi-Persona Classification System ✨")
