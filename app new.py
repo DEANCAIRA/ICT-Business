@@ -184,7 +184,7 @@ class PersonaEngine:
 
 
 # Streamlit UI
-st.title("🎯 Persona Customer Profiler")
+st.title("Persona Customer Profiler")
 st.markdown("*Multi-Persona Classification System*")
 
 engine = PersonaEngine()
@@ -540,7 +540,7 @@ if file:
 
             if multi_persona_users:
                 st.markdown("---")
-                st.markdown("**🎭 Sample Multi-Persona Customers**")
+                st.markdown("**Sample Multi-Persona Customers**")
                 sample_multi = pd.DataFrame(multi_persona_users[:10])[
                     ["email", "phone", "first_name", "last_name", "gender", "city", "persona_string", "interest", "product_interest"]
                 ].rename(columns={
@@ -685,4 +685,4 @@ else:
     
 
 st.markdown("---")
-st.markdown("© 2025 JKEJK | Multi-Persona Classification System ✨")
+st.markdown("© 2025 JKEJK | Multi-Persona Classification System")
