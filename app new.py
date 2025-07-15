@@ -290,8 +290,8 @@ if file:
                     marker=dict(line=dict(color='white', width=2))
                 )
                 fig_complexity.update_layout(
-                    height=500,  # 25% bigger (400 * 1.25 = 500)
-                    width=700,   # 25% bigger (560 * 1.25 = 700)
+                    height=450,  # 10% smaller (500 * 0.9 = 450)
+                    width=630,   # 10% smaller (700 * 0.9 = 630)
                     showlegend=True,
                     legend=dict(
                         orientation="v",
@@ -333,8 +333,8 @@ if file:
                         marker=dict(line=dict(color='white', width=2))
                     )
                     fig_gender.update_layout(
-                        height=500,  # 25% bigger
-                        width=700,   # 25% bigger
+                        height=450,  # 10% smaller
+                        width=630,   # 10% smaller
                         showlegend=True,
                         legend=dict(
                             orientation="v",
@@ -380,8 +380,8 @@ if file:
                     marker=dict(line=dict(color='white', width=2))
                 )
                 fig_city.update_layout(
-                    height=500,  # 25% bigger
-                    width=700,   # 25% bigger
+                    height=450,  # 10% smaller
+                    width=630,   # 10% smaller
                     showlegend=True,
                     legend=dict(
                         orientation="v",
@@ -462,6 +462,18 @@ if file:
                         row.append(count)
                     overlap_matrix.append(row)
                 
+                # Create dynamic text color based on heatmap values for better contrast
+                text_colors = []
+                for row in overlap_matrix:
+                    text_row = []
+                    for val in row:
+                        # Use dark color for high values (yellow/bright colors), white for low values (dark colors)
+                        if val > max([max(r) for r in overlap_matrix]) * 0.6:  # If value is in top 40% (bright/yellow area)
+                            text_row.append("black")
+                        else:
+                            text_row.append("white")
+                    text_colors.append(text_row)
+                
                 fig_heatmap = go.Figure(data=go.Heatmap(
                     z=overlap_matrix,
                     x=personas_list,
@@ -469,9 +481,22 @@ if file:
                     colorscale='Viridis',  # Back to original colorscale
                     text=overlap_matrix,
                     texttemplate="%{text}",
-                    textfont={"size": 16, "color": "white"},
+                    textfont={"size": 16},
                     hoverongaps=False
                 ))
+                
+                # Apply dynamic text colors
+                for i, row in enumerate(text_colors):
+                    for j, color in enumerate(row):
+                        fig_heatmap.add_annotation(
+                            x=j,
+                            y=i,
+                            text=str(overlap_matrix[i][j]),
+                            showarrow=False,
+                            font=dict(size=16, color=color),
+                            xref="x",
+                            yref="y"
+                        )
                 
                 fig_heatmap.update_layout(
                     title="Persona Overlap Matrix<br><sub>Diagonal: Total | Off-diagonal: Shared customers</sub>",
@@ -661,7 +686,7 @@ if file:
         st.error("❌ Could not read uploaded CSV. Please check formatting.")
 else:
     st.info("📤 Upload your customer CSV file to begin persona analysis.")
-   
+  
 
 st.markdown("---")
 st.markdown("© 2025 JKEJK | Multi-Persona Classification System ✨")
