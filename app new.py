@@ -433,12 +433,13 @@ if file:
                 fig_combo.update_layout(
                     yaxis={'categoryorder':'total ascending'},
                     showlegend=False,
-                    height=500
+                    height=400  # Reduced height to match table
                 )
                 fig_combo.update_traces(textposition='outside', textfont_size=12, textfont_color='white')
                 st.plotly_chart(fig_combo, use_container_width=True)
                 
-                # Show the data table
+                # Show the data table with proper header
+                st.markdown("**📊 Combination Details**")
                 st.dataframe(combo_df[['Combination', 'Count', '% of Total']], use_container_width=True, hide_index=True)
             
             with col2:
@@ -479,7 +480,7 @@ if file:
                     title="Persona Overlap Matrix<br><sub>Diagonal: Total | Off-diagonal: Shared customers</sub>",
                     xaxis_title="Persona",
                     yaxis_title="Persona",
-                    height=500,
+                    height=400,  # Reduced height to match left column
                     font=dict(size=12)
                 )
                 st.plotly_chart(fig_heatmap, use_container_width=True)
@@ -652,7 +653,7 @@ if file:
         st.error("❌ Could not read uploaded CSV. Please check formatting.")
 else:
     st.info("📤 Upload your customer CSV file to begin persona analysis.")
-  
+   
 
 st.markdown("---")
-st.markdown("© 2025 JKEJK | Multi-Persona Classification System ✨")
+st.markdown("© 2025 JKEJK | Multi-Persona Classification System")
