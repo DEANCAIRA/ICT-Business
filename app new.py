@@ -290,12 +290,22 @@ if file:
                     marker=dict(line=dict(color='white', width=2))
                 )
                 fig_complexity.update_layout(
-                    height=400, 
-                    showlegend=False
+                    height=500,  # 25% bigger (400 * 1.25 = 500)
+                    width=700,   # 25% bigger (560 * 1.25 = 700)
+                    showlegend=True,
+                    legend=dict(
+                        orientation="v",
+                        yanchor="middle",
+                        y=0.5,
+                        xanchor="left",
+                        x=1.05,
+                        font=dict(size=14)
+                    ),
+                    margin=dict(l=20, r=140, t=50, b=20)
                 )
                 st.plotly_chart(fig_complexity, use_container_width=True)
 
-            # Second row - Demographics
+            # Second row - Demographics (make symmetric)
             st.markdown("---")
             st.subheader("👥 Demographics Overview")
             
@@ -322,7 +332,20 @@ if file:
                         textfont_color='white',
                         marker=dict(line=dict(color='white', width=2))
                     )
-                    fig_gender.update_layout(height=400, showlegend=False)
+                    fig_gender.update_layout(
+                        height=500,  # 25% bigger
+                        width=700,   # 25% bigger
+                        showlegend=True,
+                        legend=dict(
+                            orientation="v",
+                            yanchor="middle",
+                            y=0.5,
+                            xanchor="left",
+                            x=1.05,
+                            font=dict(size=14)
+                        ),
+                        margin=dict(l=20, r=140, t=50, b=20)
+                    )
                     st.plotly_chart(fig_gender, use_container_width=True)
                 else:
                     st.info("No gender data available")
@@ -356,7 +379,20 @@ if file:
                     textfont_color='white',
                     marker=dict(line=dict(color='white', width=2))
                 )
-                fig_city.update_layout(height=400, showlegend=False)
+                fig_city.update_layout(
+                    height=500,  # 25% bigger
+                    width=700,   # 25% bigger
+                    showlegend=True,
+                    legend=dict(
+                        orientation="v",
+                        yanchor="middle",
+                        y=0.5,
+                        xanchor="left",
+                        x=1.05,
+                        font=dict(size=12)
+                    ),
+                    margin=dict(l=20, r=140, t=50, b=20)
+                )
                 st.plotly_chart(fig_city, use_container_width=True)
 
         with tab2:
