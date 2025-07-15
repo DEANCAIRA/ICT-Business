@@ -462,41 +462,18 @@ if file:
                         row.append(count)
                     overlap_matrix.append(row)
                 
-                # Create dynamic text color based on heatmap values for better contrast
-                text_colors = []
-                for row in overlap_matrix:
-                    text_row = []
-                    for val in row:
-                        # Use dark color for high values (yellow/bright colors), white for low values (dark colors)
-                        if val > max([max(r) for r in overlap_matrix]) * 0.6:  # If value is in top 40% (bright/yellow area)
-                            text_row.append("black")
-                        else:
-                            text_row.append("white")
-                    text_colors.append(text_row)
-                
+                # Force black text for all heatmap values for better contrast
                 fig_heatmap = go.Figure(data=go.Heatmap(
                     z=overlap_matrix,
                     x=personas_list,
                     y=personas_list,
-                    colorscale='Viridis',  # Back to original colorscale
+                    colorscale='Viridis',
                     text=overlap_matrix,
                     texttemplate="%{text}",
-                    textfont={"size": 16},
-                    hoverongaps=False
+                    textfont={"size": 16, "color": "black"},  # Force black text for all values
+                    hoverongaps=False,
+                    showscale=True
                 ))
-                
-                # Apply dynamic text colors
-                for i, row in enumerate(text_colors):
-                    for j, color in enumerate(row):
-                        fig_heatmap.add_annotation(
-                            x=j,
-                            y=i,
-                            text=str(overlap_matrix[i][j]),
-                            showarrow=False,
-                            font=dict(size=16, color=color),
-                            xref="x",
-                            yref="y"
-                        )
                 
                 fig_heatmap.update_layout(
                     title="Persona Overlap Matrix<br><sub>Diagonal: Total | Off-diagonal: Shared customers</sub>",
@@ -554,8 +531,8 @@ if file:
         with tab3:
             st.subheader("👥 Customer Segments")
             
-            # Filter controls
-            col1, col2 = st.columns([2, 1])
+            # Filter controls - properly aligned
+            col1, col2 = st.columns([1, 1])  # Equal width columns for proper alignment
             with col1:
                 filter_persona = st.selectbox(
                     "🔍 Filter by persona:",
@@ -667,17 +644,6 @@ if file:
                     file_name=f"customer_personas_{filter_persona.lower().replace(' ', '_')}.csv",
                     mime="text/csv"
                 )
-                
-                # Quick stats
-                col1, col2, col3 = st.columns(3)
-                with col1:
-                    st.metric("👥 Total Filtered", len(filtered_data))
-                with col2:
-                    unique_combos = len(set(p["persona_string"] for p in filtered_data))
-                    st.metric("🎭 Unique Combinations", unique_combos)
-                with col3:
-                    avg_filtered_personas = sum(len(p["assigned_personas"]) for p in filtered_data) / len(filtered_data)
-                    st.metric("📊 Avg Personas", f"{avg_filtered_personas:.1f}")
                     
             else:
                 st.warning("❌ No customers match your filter criteria.")
