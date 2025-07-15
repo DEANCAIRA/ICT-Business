@@ -463,18 +463,47 @@ if file:
                         row.append(count)
                     overlap_matrix.append(row)
                 
-                # Force black text for all heatmap values for better contrast
+                # Create dynamic text colors based on background for better contrast
+                def get_text_color_for_value(value, max_val):
+                    # Normalize value to 0-1 range
+                    normalized = value / max_val if max_val > 0 else 0
+                    
+                    # Viridis colorscale mapping (approximate)
+                    if normalized < 0.2:  # Dark purple/blue area
+                        return "white"
+                    elif normalized < 0.4:  # Blue area  
+                        return "white"
+                    elif normalized < 0.6:  # Teal area
+                        return "black"
+                    elif normalized < 0.8:  # Green area
+                        return "black" 
+                    else:  # Yellow area
+                        return "black"
+                
+                max_value = max([max(row) for row in overlap_matrix]) if overlap_matrix else 1
+                
                 fig_heatmap = go.Figure(data=go.Heatmap(
                     z=overlap_matrix,
                     x=personas_list,
                     y=personas_list,
                     colorscale='Viridis',
-                    text=overlap_matrix,
-                    texttemplate="%{text}",
-                    textfont={"size": 16, "color": "black"},  # Force black text for all values
-                    hoverongaps=False,
-                    showscale=True
+                    showscale=True,
+                    hoverongaps=False
                 ))
+                
+                # Add text annotations with proper contrast
+                for i, row in enumerate(overlap_matrix):
+                    for j, value in enumerate(row):
+                        text_color = get_text_color_for_value(value, max_value)
+                        fig_heatmap.add_annotation(
+                            x=j,
+                            y=i,
+                            text=str(value),
+                            showarrow=False,
+                            font=dict(size=16, color=text_color, family="Arial Black"),
+                            xref="x",
+                            yref="y"
+                        )
                 
                 fig_heatmap.update_layout(
                     title="Persona Overlap Matrix<br><sub>Diagonal: Total | Off-diagonal: Shared customers</sub>",
@@ -653,7 +682,7 @@ if file:
         st.error("❌ Could not read uploaded CSV. Please check formatting.")
 else:
     st.info("📤 Upload your customer CSV file to begin persona analysis.")
-   
+    
 
 st.markdown("---")
-st.markdown("© 2025 JKEJK | Multi-Persona Classification System")
+st.markdown("© 2025 JKEJK | Multi-Persona Classification System ✨")
