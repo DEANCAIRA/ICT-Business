@@ -266,7 +266,7 @@ if file:
                 st.subheader("🔀 Customer Complexity")
                 st.caption("*Distribution of single vs multi-persona customers*")
                 
-                # Create pie chart data
+                # Create pie chart data with NEW COLORS
                 complexity_data = {
                     'Single Persona': single_persona_count,
                     'Multi-Persona': multi_persona_count
@@ -277,8 +277,8 @@ if file:
                     values=list(complexity_data.values()),
                     title="Customer Persona Complexity",
                     color_discrete_map={
-                        'Single Persona': '#2ECC71',  # Green to match other charts
-                        'Multi-Persona': '#E74C3C'   # Red to match other charts
+                        'Single Persona': '#2ECC71',  # GREEN - changed from orange
+                        'Multi-Persona': '#E74C3C'   # RED - changed from purple
                     }
                 )
                 fig_complexity.update_traces(
@@ -289,8 +289,8 @@ if file:
                     marker=dict(line=dict(color='white', width=2))
                 )
                 fig_complexity.update_layout(
-                    height=418,  # 7% smaller (450 * 0.93 = 418)
-                    width=586,   # 7% smaller (630 * 0.93 = 586)
+                    height=418,  # 7% smaller
+                    width=586,   # 7% smaller
                     showlegend=True,
                     legend=dict(
                         orientation="v",
@@ -317,11 +317,11 @@ if file:
                         names=gender_stats.index,
                         values=gender_stats.values,
                         color_discrete_map={
-                            'Male': '#3498DB',      # Keep blue
-                            'Female': '#E74C3C',    # Change to red to match theme
-                            'M': '#3498DB',         # Keep blue
-                            'F': '#E74C3C',         # Change to red to match theme
-                            'Unknown': '#95A99C'    # Keep gray
+                            'Male': '#3498DB',      # BLUE - kept
+                            'Female': '#E74C3C',    # RED - changed from pink
+                            'M': '#3498DB',         # BLUE - kept
+                            'F': '#E74C3C',         # RED - changed from pink
+                            'Unknown': '#95A99C'    # GRAY - kept
                         }
                     )
                     fig_gender.update_traces(
@@ -366,7 +366,7 @@ if file:
                     "Count": city_values
                 })
                 
-                # Use high contrast colors for cities
+                # Use harmonized colors
                 city_colors = ['#E74C3C', '#2ECC71', '#3498DB', '#F39C12', '#9B59B6', '#1ABC9C', '#E67E22', '#34495E']
                 
                 fig_city = px.pie(city_df, names="City", values="Count", 
@@ -438,6 +438,7 @@ if file:
                 
                 combo_df['Color'] = combo_df['Combination'].apply(get_combo_color)
                 
+                # FIXED BAR CHART WITH LONGER BARS AND VISIBLE NUMBERS
                 fig_combo = px.bar(
                     combo_df, 
                     x="Count", 
@@ -454,17 +455,17 @@ if file:
                         'tickfont': {'size': 10}
                     },
                     xaxis={
-                        'range': [0, max(combo_df['Count']) * 1.5]  # Extend bars 50% longer
+                        'range': [0, max(combo_df['Count']) * 1.8]  # MUCH LONGER BARS - 80% extension
                     },
                     showlegend=False,
-                    height=380,  # Reduced height to match heatmap better
-                    margin=dict(l=20, r=250, t=50, b=20),  # Even larger right margin
-                    width=1400  # Even wider chart
+                    height=380,  # Matched height
+                    margin=dict(l=20, r=300, t=50, b=20),  # HUGE right margin for numbers
+                    width=1500  # EXTRA WIDE chart
                 )
                 fig_combo.update_traces(
                     textposition='outside', 
-                    textfont_size=14, 
-                    textfont_color='black',  # Black text for visibility
+                    textfont_size=16,  # LARGER text
+                    textfont_color='black',  # BLACK for visibility
                     textfont_family='Arial Black'
                 )
                 st.plotly_chart(fig_combo, use_container_width=True)
