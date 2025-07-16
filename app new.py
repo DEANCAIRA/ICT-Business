@@ -184,7 +184,7 @@ class PersonaEngine:
 
 
 # Streamlit UI
-st.title("🎯 Persona Customer Profiler")
+st.title("Persona Customer Profiler")
 st.markdown("*Multi-Persona Classification System*")
 
 engine = PersonaEngine()
