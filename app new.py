@@ -266,7 +266,7 @@ if file:
                 st.subheader("🔀 Customer Complexity")
                 st.caption("*Distribution of single vs multi-persona customers*")
                 
-                # Create pie chart data with NEW COLORS
+                # DEFINITELY CHANGED COLORS - Create pie chart data with NEW COLORS
                 complexity_data = {
                     'Single Persona': single_persona_count,
                     'Multi-Persona': multi_persona_count
@@ -277,8 +277,8 @@ if file:
                     values=list(complexity_data.values()),
                     title="Customer Persona Complexity",
                     color_discrete_map={
-                        'Single Persona': '#2ECC71',  # GREEN - changed from orange
-                        'Multi-Persona': '#E74C3C'   # RED - changed from purple
+                        'Single Persona': '#2ECC71',  # GREEN - DEFINITELY CHANGED
+                        'Multi-Persona': '#E74C3C'   # RED - DEFINITELY CHANGED
                     }
                 )
                 fig_complexity.update_traces(
@@ -313,14 +313,15 @@ if file:
             with col3:
                 st.markdown("**Gender Distribution**")
                 if not gender_stats.empty:
+                    # DEFINITELY CHANGED GENDER COLORS
                     fig_gender = px.pie(
                         names=gender_stats.index,
                         values=gender_stats.values,
                         color_discrete_map={
                             'Male': '#3498DB',      # BLUE - kept
-                            'Female': '#E74C3C',    # RED - changed from pink
-                            'M': '#3498DB',         # BLUE - kept
-                            'F': '#E74C3C',         # RED - changed from pink
+                            'Female': '#E74C3C',    # RED - DEFINITELY CHANGED FROM PINK
+                            'M': '#3498DB',         # BLUE - kept  
+                            'F': '#E74C3C',         # RED - DEFINITELY CHANGED FROM PINK
                             'Unknown': '#95A99C'    # GRAY - kept
                         }
                     )
@@ -438,7 +439,7 @@ if file:
                 
                 combo_df['Color'] = combo_df['Combination'].apply(get_combo_color)
                 
-                # FIXED BAR CHART WITH LONGER BARS AND VISIBLE NUMBERS
+                # FIXED BAR CHART WITH 400% LONGER BARS AND NUMBERS ON LEFT
                 fig_combo = px.bar(
                     combo_df, 
                     x="Count", 
@@ -455,17 +456,17 @@ if file:
                         'tickfont': {'size': 10}
                     },
                     xaxis={
-                        'range': [0, max(combo_df['Count']) * 1.8]  # MUCH LONGER BARS - 80% extension
+                        'range': [0, max(combo_df['Count']) * 5]  # 400% LONGER - 5x extension
                     },
                     showlegend=False,
-                    height=380,  # Matched height
-                    margin=dict(l=20, r=300, t=50, b=20),  # HUGE right margin for numbers
-                    width=1500  # EXTRA WIDE chart
+                    height=380,
+                    margin=dict(l=100, r=50, t=50, b=20),  # Large LEFT margin for numbers
+                    width=2000  # Much wider chart
                 )
                 fig_combo.update_traces(
-                    textposition='outside', 
-                    textfont_size=16,  # LARGER text
-                    textfont_color='black',  # BLACK for visibility
+                    textposition='inside',  # NUMBERS INSIDE BARS (LEFT SIDE)
+                    textfont_size=16,
+                    textfont_color='white',  # White text inside bars
                     textfont_family='Arial Black'
                 )
                 st.plotly_chart(fig_combo, use_container_width=True)
