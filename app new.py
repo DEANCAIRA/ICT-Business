@@ -277,8 +277,8 @@ if file:
                     values=list(complexity_data.values()),
                     title="Customer Persona Complexity",
                     color_discrete_map={
-                        'Single Persona': '#F39C12',
-                        'Multi-Persona': '#9B59B6'
+                        'Single Persona': '#2ECC71',  # Green to match other charts
+                        'Multi-Persona': '#E74C3C'   # Red to match other charts
                     }
                 )
                 fig_complexity.update_traces(
@@ -317,11 +317,11 @@ if file:
                         names=gender_stats.index,
                         values=gender_stats.values,
                         color_discrete_map={
-                            'Male': '#3498DB',
-                            'Female': '#E91E63',
-                            'M': '#3498DB',
-                            'F': '#E91E63',
-                            'Unknown': '#95A99C'
+                            'Male': '#3498DB',      # Keep blue
+                            'Female': '#E74C3C',    # Change to red to match theme
+                            'M': '#3498DB',         # Keep blue
+                            'F': '#E74C3C',         # Change to red to match theme
+                            'Unknown': '#95A99C'    # Keep gray
                         }
                     )
                     fig_gender.update_traces(
@@ -454,14 +454,15 @@ if file:
                         'tickfont': {'size': 10}
                     },
                     showlegend=False,
-                    height=450,
-                    margin=dict(l=20, r=150, t=50, b=20),
+                    height=380,  # Reduced height to match heatmap better
+                    margin=dict(l=20, r=200, t=50, b=20),  # Larger right margin for numbers
                     width=1200  # Much wider chart - 200% increase
                 )
                 fig_combo.update_traces(
                     textposition='outside', 
-                    textfont_size=12, 
-                    textfont_color='white'
+                    textfont_size=13, 
+                    textfont_color='black',  # Changed to black for better visibility
+                    textfont_family='Arial Black'
                 )
                 st.plotly_chart(fig_combo, use_container_width=True)
                 
@@ -536,7 +537,7 @@ if file:
                     title="Persona Overlap Matrix<br><sub>Diagonal: Total | Off-diagonal: Shared customers</sub>",
                     xaxis_title="Persona",
                     yaxis_title="Persona",
-                    height=400,
+                    height=380,  # Match the bar chart height
                     font=dict(size=12)
                 )
                 st.plotly_chart(fig_heatmap, use_container_width=True)
