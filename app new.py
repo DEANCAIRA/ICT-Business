@@ -439,7 +439,7 @@ if file:
                 
                 combo_df['Color'] = combo_df['Combination'].apply(get_combo_color)
                 
-                # FIXED BAR CHART WITH 400% LONGER BARS AND NUMBERS ON LEFT
+                # BACK TO ORIGINAL BAR CHART LENGTH
                 fig_combo = px.bar(
                     combo_df, 
                     x="Count", 
@@ -455,19 +455,14 @@ if file:
                         'categoryorder':'total ascending',
                         'tickfont': {'size': 10}
                     },
-                    xaxis={
-                        'range': [0, max(combo_df['Count']) * 5]  # 400% LONGER - 5x extension
-                    },
                     showlegend=False,
                     height=380,
-                    margin=dict(l=100, r=50, t=50, b=20),  # Large LEFT margin for numbers
-                    width=2000  # Much wider chart
+                    margin=dict(l=20, r=150, t=50, b=20)  # Back to original margins
                 )
                 fig_combo.update_traces(
-                    textposition='inside',  # NUMBERS INSIDE BARS (LEFT SIDE)
-                    textfont_size=16,
-                    textfont_color='white',  # White text inside bars
-                    textfont_family='Arial Black'
+                    textposition='outside', 
+                    textfont_size=12, 
+                    textfont_color='white'
                 )
                 st.plotly_chart(fig_combo, use_container_width=True)
                 
