@@ -184,7 +184,7 @@ class PersonaEngine:
 
 
 # Streamlit UI
-st.title("Persona Customer Profiler")
+st.title("🎯 Persona Customer Profiler")
 st.markdown("*Multi-Persona Classification System*")
 
 engine = PersonaEngine()
@@ -290,8 +290,8 @@ if file:
                     marker=dict(line=dict(color='white', width=2))
                 )
                 fig_complexity.update_layout(
-                    height=450,  # 10% smaller (500 * 0.9 = 450)
-                    width=630,   # 10% smaller (700 * 0.9 = 630)
+                    height=418,  # 7% smaller (450 * 0.93 = 418)
+                    width=586,   # 7% smaller (630 * 0.93 = 586)
                     showlegend=True,
                     legend=dict(
                         orientation="v",
@@ -333,8 +333,8 @@ if file:
                         marker=dict(line=dict(color='white', width=2))
                     )
                     fig_gender.update_layout(
-                        height=450,  # 10% smaller
-                        width=630,   # 10% smaller
+                        height=418,  # 7% smaller to match
+                        width=586,   # 7% smaller to match
                         showlegend=True,
                         legend=dict(
                             orientation="v",
@@ -380,8 +380,8 @@ if file:
                     marker=dict(line=dict(color='white', width=2))
                 )
                 fig_city.update_layout(
-                    height=450,  # 10% smaller
-                    width=630,   # 10% smaller
+                    height=418,  # 7% smaller to match
+                    width=586,   # 7% smaller to match
                     showlegend=True,
                     legend=dict(
                         orientation="v",
@@ -401,7 +401,7 @@ if file:
             col1, col2 = st.columns(2)
             
             with col1:
-                st.markdown("**📋 Top Persona Combinations**")
+                st.markdown("**📊 Persona Distribution**")  # Changed title
                 combo_df = pd.DataFrame([
                     {
                         "Combination": combo, 
@@ -433,7 +433,8 @@ if file:
                 fig_combo.update_layout(
                     yaxis={'categoryorder':'total ascending'},
                     showlegend=False,
-                    height=400  # Reduced height to match table
+                    height=400,  # Reduced height to match table
+                    margin=dict(l=0, r=150, t=40, b=0)  # Increased right margin for text visibility
                 )
                 fig_combo.update_traces(textposition='outside', textfont_size=12, textfont_color='white')
                 st.plotly_chart(fig_combo, use_container_width=True)
@@ -540,7 +541,7 @@ if file:
 
             if multi_persona_users:
                 st.markdown("---")
-                st.markdown("**Sample Multi-Persona Customers**")
+                st.markdown("**🎭 Sample Multi-Persona Customers**")
                 sample_multi = pd.DataFrame(multi_persona_users[:10])[
                     ["email", "phone", "first_name", "last_name", "gender", "city", "persona_string", "interest", "product_interest"]
                 ].rename(columns={
@@ -682,7 +683,7 @@ if file:
         st.error("❌ Could not read uploaded CSV. Please check formatting.")
 else:
     st.info("📤 Upload your customer CSV file to begin persona analysis.")
-    
+   
 
 st.markdown("---")
-st.markdown("© 2025 JKEJK | Multi-Persona Classification System")
+st.markdown("© 2025 JKEJK | Multi-Persona Classification System ")
