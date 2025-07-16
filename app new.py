@@ -453,15 +453,18 @@ if file:
                         'categoryorder':'total ascending',
                         'tickfont': {'size': 10}
                     },
+                    xaxis={
+                        'range': [0, max(combo_df['Count']) * 1.5]  # Extend bars 50% longer
+                    },
                     showlegend=False,
                     height=380,  # Reduced height to match heatmap better
-                    margin=dict(l=20, r=200, t=50, b=20),  # Larger right margin for numbers
-                    width=1200  # Much wider chart - 200% increase
+                    margin=dict(l=20, r=250, t=50, b=20),  # Even larger right margin
+                    width=1400  # Even wider chart
                 )
                 fig_combo.update_traces(
                     textposition='outside', 
-                    textfont_size=13, 
-                    textfont_color='black',  # Changed to black for better visibility
+                    textfont_size=14, 
+                    textfont_color='black',  # Black text for visibility
                     textfont_family='Arial Black'
                 )
                 st.plotly_chart(fig_combo, use_container_width=True)
