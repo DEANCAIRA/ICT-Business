@@ -209,7 +209,6 @@ if file:
         tab1, tab2, tab3 = st.tabs(["📊 Persona Overview", "🔄 Multi-Persona Analysis", "👥 Customer Details"])
 
         with tab1:
-
             # Main visualization section
             col1, col2 = st.columns(2)
 
@@ -305,7 +304,7 @@ if file:
                 )
                 st.plotly_chart(fig_complexity, use_container_width=True)
 
-            # Second row - Demographics (make symmetric)
+            # Second row - Demographics
             st.markdown("---")
             st.subheader("👥 Demographics Overview")
             
@@ -401,7 +400,7 @@ if file:
             col1, col2 = st.columns(2)
             
             with col1:
-                st.markdown("**📊 Persona Distribution**")  # Changed title
+                st.markdown("**📊 Persona Distribution**")
                 combo_df = pd.DataFrame([
                     {
                         "Combination": combo, 
@@ -411,7 +410,26 @@ if file:
                     for combo, count in combination_stats.most_common(15)
                 ])
                 
-                # Color code combinations with high contrast
+                # Function to wrap long combination names to two lines
+                def wrap_combination_name(combo):
+                    if " + " in combo:
+                        parts = combo.split(" + ")
+                        if len(parts) == 2:
+                            return f"{parts[0]}<br>+ {parts[1]}"
+                        elif len(parts) == 3:
+                            return f"{parts[0]} + {parts[1]}<br>+ {parts[2]}"
+                        else:
+                            # For more than 3 parts, split roughly in half
+                            mid = len(parts) // 2
+                            first_line = " + ".join(parts[:mid])
+                            second_line = " + ".join(parts[mid:])
+                            return f"{first_line}<br>+ {second_line}"
+                    return combo
+                
+                # Apply wrapping to combination names
+                combo_df['Wrapped_Combination'] = combo_df['Combination'].apply(wrap_combination_name)
+                
+                # Color code combinations
                 def get_combo_color(combo):
                     if " + " in combo:
                         return "#E74C3C"  # Red for multi-persona
@@ -423,7 +441,7 @@ if file:
                 fig_combo = px.bar(
                     combo_df, 
                     x="Count", 
-                    y="Combination", 
+                    y="Wrapped_Combination", 
                     orientation='h',
                     color='Color',
                     color_discrete_map={"#E74C3C": "#E74C3C", "#2ECC71": "#2ECC71"},
@@ -431,15 +449,23 @@ if file:
                     text="Count"
                 )
                 fig_combo.update_layout(
-                    yaxis={'categoryorder':'total ascending'},
+                    yaxis={
+                        'categoryorder':'total ascending',
+                        'tickfont': {'size': 10}
+                    },
                     showlegend=False,
-                    height=400,  # Reduced height to match table
-                    margin=dict(l=0, r=150, t=40, b=0)  # Increased right margin for text visibility
+                    height=450,
+                    margin=dict(l=20, r=150, t=50, b=20),
+                    width=1200  # Much wider chart - 200% increase
                 )
-                fig_combo.update_traces(textposition='outside', textfont_size=12, textfont_color='white')
+                fig_combo.update_traces(
+                    textposition='outside', 
+                    textfont_size=12, 
+                    textfont_color='white'
+                )
                 st.plotly_chart(fig_combo, use_container_width=True)
                 
-                # Show the data table with proper header
+                # Show the data table
                 st.markdown("**📊 Combination Details**")
                 st.dataframe(combo_df[['Combination', 'Count', '% of Total']], use_container_width=True, hide_index=True)
             
@@ -447,7 +473,7 @@ if file:
                 st.markdown("**🔥 Persona Overlap Heatmap**")
                 
                 # Create overlap matrix for personas (exclude Unclassified)
-                personas_list = list(engine.persona_keywords.keys())  # Remove + ["Unclassified"]
+                personas_list = list(engine.persona_keywords.keys())
                 overlap_matrix = []
                 
                 for persona1 in personas_list:
@@ -510,7 +536,7 @@ if file:
                     title="Persona Overlap Matrix<br><sub>Diagonal: Total | Off-diagonal: Shared customers</sub>",
                     xaxis_title="Persona",
                     yaxis_title="Persona",
-                    height=400,  # Reduced height to match left column
+                    height=400,
                     font=dict(size=12)
                 )
                 st.plotly_chart(fig_heatmap, use_container_width=True)
@@ -683,7 +709,6 @@ if file:
         st.error("❌ Could not read uploaded CSV. Please check formatting.")
 else:
     st.info("📤 Upload your customer CSV file to begin persona analysis.")
-    
 
 st.markdown("---")
-st.markdown("© 2025 JKEJK | Multi-Persona Classification Systemm")
+st.markdown("© 2025 JKEJK | Multi-Persona Classification System")
