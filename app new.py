@@ -683,7 +683,7 @@ if file:
         st.error("❌ Could not read uploaded CSV. Please check formatting.")
 else:
     st.info("📤 Upload your customer CSV file to begin persona analysis.")
-   
+    
 
 st.markdown("---")
 st.markdown("© 2025 JKEJK | Multi-Persona Classification System ")
