@@ -684,6 +684,5 @@ if file:
 else:
     st.info("📤 Upload your customer CSV file to begin persona analysis.")
     
-
 st.markdown("---")
-st.markdown("© 2025 JKEJK | Multi-Persona Classification System ")
+st.markdown("© 2025 JKEJK | Multi-Persona Classification System ✨")
