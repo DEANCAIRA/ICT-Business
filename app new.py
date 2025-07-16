@@ -686,4 +686,4 @@ else:
     
 
 st.markdown("---")
-st.markdown("© 2025 JKEJK | Multi-Persona Classification System")
+st.markdown("© 2025 JKEJK | Multi-Persona Classification Systemm")
